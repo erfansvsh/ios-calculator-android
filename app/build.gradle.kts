@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.erfansvsh.calculator"
+    namespace = "com.erfansvsh.ioscalculator"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.erfansvsh.calculator"
+        applicationId = "com.erfansvsh.ioscalculator"
         minSdk = 26
         targetSdk = 34
         versionCode = 1
@@ -29,7 +29,7 @@ android {
             )
         }
         debug {
-            applicationIdSuffix = ".debug"
+            // No suffix so package name is strictly com.erfansvsh.ioscalculator
             isDebuggable = true
         }
     }
