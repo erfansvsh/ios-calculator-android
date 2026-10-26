@@ -28,9 +28,9 @@ class CalculatorViewModel : ViewModel() {
     private var lastOperation: Pair<String, Double>? = null
     private var hasError: Boolean = false
 
-    // Scientific states
-    private val _isRad = MutableStateFlow(true)
-    val isRad: StateFlow<Boolean> = _isRad.asStateFlow()
+    // Scientific states: Default is DEGREES (isRadMode = false)
+    private val _isRadMode = MutableStateFlow(false)
+    val isRadMode: StateFlow<Boolean> = _isRadMode.asStateFlow()
 
     private val _is2nd = MutableStateFlow(false)
     val is2nd: StateFlow<Boolean> = _is2nd.asStateFlow()
@@ -290,7 +290,7 @@ class CalculatorViewModel : ViewModel() {
     }
 
     fun toggleRad() {
-        _isRad.value = !_isRad.value
+        _isRadMode.value = !_isRadMode.value
     }
 
     fun toggle2nd() {
@@ -299,10 +299,10 @@ class CalculatorViewModel : ViewModel() {
 
     fun onScientific(fn: String) {
         val curr = _displayValue.value.toDoubleOrNull() ?: return
-        val rad = _isRad.value
+        val isRad = _isRadMode.value
         val sec = _is2nd.value
 
-        // Check if it's a binary operator (like xʸ, ʸ√x, etc.)
+        // Binary operators
         when (fn) {
             "xʸ", "yˣ", "ʸ√x", "log_y", "EE" -> {
                 onOperator(fn)
@@ -339,9 +339,24 @@ class CalculatorViewModel : ViewModel() {
             "log₁₀" -> if (curr <= 0) Double.NaN else log10(curr)
             "log₂" -> if (curr <= 0) Double.NaN else log2(curr)
             "x!" -> factorial(curr)
-            "sin" -> if (sec) asin(curr) else sin(if (rad) curr else Math.toRadians(curr))
-            "cos" -> if (sec) acos(curr) else cos(if (rad) curr else Math.toRadians(curr))
-            "tan" -> if (sec) atan(curr) else tan(if (rad) curr else Math.toRadians(curr))
+            "sin" -> if (sec) {
+                val radVal = asin(curr)
+                if (isRad) radVal else Math.toDegrees(radVal)
+            } else {
+                sin(if (isRad) curr else Math.toRadians(curr))
+            }
+            "cos" -> if (sec) {
+                val radVal = acos(curr)
+                if (isRad) radVal else Math.toDegrees(radVal)
+            } else {
+                cos(if (isRad) curr else Math.toRadians(curr))
+            }
+            "tan" -> if (sec) {
+                val radVal = atan(curr)
+                if (isRad) radVal else Math.toDegrees(radVal)
+            } else {
+                tan(if (isRad) curr else Math.toRadians(curr))
+            }
             "sinh" -> if (sec) asinh(curr) else sinh(curr)
             "cosh" -> if (sec) acosh(curr) else cosh(curr)
             "tanh" -> if (sec) atanh(curr) else tanh(curr)
