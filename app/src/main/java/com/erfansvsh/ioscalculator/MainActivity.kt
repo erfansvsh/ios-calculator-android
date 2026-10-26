@@ -29,7 +29,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-// iOS Colors - Shared identically across Portrait and Landscape
+// Exact iOS Calculator Colors
 val ColorBlack = Color(0xFF000000)
 val ColorDarkGray = Color(0xFF333333)
 val ColorDarkGrayPressed = Color(0xFF737373)
@@ -40,6 +40,8 @@ val ColorOrangePressed = Color(0xFFFCC781)
 val ColorWhite = Color(0xFFFFFFFF)
 val ColorSciGray = Color(0xFF212121)
 val ColorSciGrayPressed = Color(0xFF424242)
+val ColorSciActiveBg = Color(0xFFA5A5A5) // Light gray when scientific buttons are selected
+val ColorSciActiveFg = Color(0xFF000000) // Black text when scientific buttons are selected
 
 class MainActivity : ComponentActivity() {
     private val viewModel: CalculatorViewModel by viewModels()
@@ -124,7 +126,7 @@ fun UniversalIosButton(
 fun PlusMinusIcon(
     color: Color,
     modifier: Modifier = Modifier,
-    fontSize: TextUnit = 24.sp
+    fontSize: TextUnit = 36.sp
 ) {
     Box(
         modifier = modifier,
@@ -139,7 +141,7 @@ fun PlusMinusIcon(
                 color = color,
                 fontSize = fontSize * 0.65f,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.offset(y = (-4).dp, x = 1.dp)
+                modifier = Modifier.offset(y = (-5).dp, x = 1.dp)
             )
             Text(
                 text = "/",
@@ -153,7 +155,7 @@ fun PlusMinusIcon(
                 color = color,
                 fontSize = fontSize * 0.7f,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.offset(y = 4.dp, x = (-1).dp)
+                modifier = Modifier.offset(y = 5.dp, x = (-1).dp)
             )
         }
     }
@@ -181,7 +183,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                 .weight(1f)
                 .pointerInput(Unit) {
                     detectHorizontalDragGestures { _, dragAmount ->
-                        if (kotlin.math.abs(dragAmount) > 20) {
+                        if (abs(dragAmount) > 20) {
                             vm.onBackspace()
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         }
@@ -189,12 +191,14 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                 },
             contentAlignment = Alignment.BottomEnd
         ) {
+            // Larger iOS headline typography
             val fontSize = when {
-                formattedDisplay.length <= 6 -> 94.sp
-                formattedDisplay.length == 7 -> 80.sp
-                formattedDisplay.length == 8 -> 68.sp
-                formattedDisplay.length == 9 -> 56.sp
-                else -> 44.sp
+                formattedDisplay.length <= 5 -> 100.sp
+                formattedDisplay.length == 6 -> 90.sp
+                formattedDisplay.length == 7 -> 82.sp
+                formattedDisplay.length == 8 -> 70.sp
+                formattedDisplay.length == 9 -> 58.sp
+                else -> 48.sp
             }
 
             Text(
@@ -227,7 +231,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                     vm.onClear()
                 }
             ) { fg ->
-                Text(text = clearLabel, color = fg, fontSize = 34.sp, fontWeight = FontWeight.Normal)
+                Text(text = clearLabel, color = fg, fontSize = 38.sp, fontWeight = FontWeight.Normal)
             }
 
             UniversalIosButton(
@@ -240,7 +244,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                     vm.onToggleSign()
                 }
             ) { fg ->
-                PlusMinusIcon(color = fg, fontSize = 28.sp)
+                PlusMinusIcon(color = fg, fontSize = 36.sp)
             }
 
             UniversalIosButton(
@@ -253,7 +257,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                     vm.onPercent()
                 }
             ) { fg ->
-                Text(text = "%", color = fg, fontSize = 34.sp, fontWeight = FontWeight.Normal)
+                Text(text = "%", color = fg, fontSize = 38.sp, fontWeight = FontWeight.Normal)
             }
 
             UniversalIosButton(
@@ -269,7 +273,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                     vm.onOperator("÷")
                 }
             ) { fg ->
-                Text(text = "÷", color = fg, fontSize = 44.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-1).dp))
+                Text(text = "÷", color = fg, fontSize = 50.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-1).dp))
             }
         }
 
@@ -291,7 +295,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                         vm.onDigit(digit)
                     }
                 ) { fg ->
-                    Text(text = digit, color = fg, fontSize = 40.sp, fontWeight = FontWeight.Normal)
+                    Text(text = digit, color = fg, fontSize = 46.sp, fontWeight = FontWeight.Normal)
                 }
             }
 
@@ -308,7 +312,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                     vm.onOperator("×")
                 }
             ) { fg ->
-                Text(text = "×", color = fg, fontSize = 44.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-1).dp))
+                Text(text = "×", color = fg, fontSize = 50.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-1).dp))
             }
         }
 
@@ -330,7 +334,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                         vm.onDigit(digit)
                     }
                 ) { fg ->
-                    Text(text = digit, color = fg, fontSize = 40.sp, fontWeight = FontWeight.Normal)
+                    Text(text = digit, color = fg, fontSize = 46.sp, fontWeight = FontWeight.Normal)
                 }
             }
 
@@ -347,7 +351,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                     vm.onOperator("−")
                 }
             ) { fg ->
-                Text(text = "−", color = fg, fontSize = 44.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-1).dp))
+                Text(text = "−", color = fg, fontSize = 50.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-1).dp))
             }
         }
 
@@ -369,7 +373,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                         vm.onDigit(digit)
                     }
                 ) { fg ->
-                    Text(text = digit, color = fg, fontSize = 40.sp, fontWeight = FontWeight.Normal)
+                    Text(text = digit, color = fg, fontSize = 46.sp, fontWeight = FontWeight.Normal)
                 }
             }
 
@@ -386,7 +390,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                     vm.onOperator("+")
                 }
             ) { fg ->
-                Text(text = "+", color = fg, fontSize = 44.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-1).dp))
+                Text(text = "+", color = fg, fontSize = 50.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-1).dp))
             }
         }
 
@@ -412,7 +416,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                     modifier = Modifier.fillMaxSize().padding(start = 30.dp),
                     contentAlignment = Alignment.CenterStart
                 ) {
-                    Text(text = "0", color = fg, fontSize = 40.sp, fontWeight = FontWeight.Normal)
+                    Text(text = "0", color = fg, fontSize = 46.sp, fontWeight = FontWeight.Normal)
                 }
             }
 
@@ -426,7 +430,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                     vm.onDecimal()
                 }
             ) { fg ->
-                Text(text = ".", color = fg, fontSize = 40.sp, fontWeight = FontWeight.Bold, modifier = Modifier.offset(y = (-4).dp))
+                Text(text = ".", color = fg, fontSize = 46.sp, fontWeight = FontWeight.Bold, modifier = Modifier.offset(y = (-4).dp))
             }
 
             UniversalIosButton(
@@ -439,7 +443,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                     vm.onEquals()
                 }
             ) { fg ->
-                Text(text = "=", color = fg, fontSize = 44.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-1).dp))
+                Text(text = "=", color = fg, fontSize = 50.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-1).dp))
             }
         }
     }
@@ -474,7 +478,7 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                 Text(
                     text = "Rad",
                     color = Color.LightGray,
-                    fontSize = 13.sp,
+                    fontSize = 16.sp,
                     fontWeight = FontWeight.Normal,
                     modifier = Modifier
                         .align(Alignment.BottomStart)
@@ -484,7 +488,7 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
             Text(
                 text = formattedDisplay,
                 color = ColorWhite,
-                fontSize = 54.sp,
+                fontSize = 64.sp,
                 fontWeight = FontWeight.Light,
                 textAlign = TextAlign.End,
                 maxLines = 1,
@@ -502,7 +506,7 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
         val sciCols = listOf(
             listOf("(", ")", "mc", "m+", "m-", "mr", clearLabel, "±", "%", "÷"),
             listOf(if (is2nd) "2ⁿᵈ" else "2ⁿᵈ", "x²", "x³", "xʸ", if (is2nd) "yˣ" else "eˣ", if (is2nd) "2ˣ" else "10ˣ", "7", "8", "9", "×"),
-            listOf("1/x", "²√x", "³√x", "ʸ√x", if (is2nd) "log_y" else "ln", if (is2nd) "log₂" else "log₁₀", "4", "5", "6", "−"),
+            listOf("1/x", "²√x", "³√x", "ʸ√x", if (is2nd) "logᵧ" else "ln", if (is2nd) "log₂" else "log₁₀", "4", "5", "6", "−"),
             listOf("x!", if (is2nd) "sin⁻¹" else "sin", if (is2nd) "cos⁻¹" else "cos", if (is2nd) "tan⁻¹" else "tan", "e", "EE", "1", "2", "3", "+"),
             listOf(radButtonLabel, if (is2nd) "sinh⁻¹" else "sinh", if (is2nd) "cosh⁻¹" else "cosh", if (is2nd) "tanh⁻¹" else "tanh", "π", "Rand", "0", ".", "=")
         )
@@ -536,12 +540,12 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                     }
                 ) { fg ->
                     if (label == "±") {
-                        PlusMinusIcon(color = fg, fontSize = 20.sp)
+                        PlusMinusIcon(color = fg, fontSize = 24.sp)
                     } else {
                         Text(
                             text = label,
                             color = fg,
-                            fontSize = if (isOp) 28.sp else 16.sp,
+                            fontSize = if (isOp) 34.sp else if (isTopLight) 22.sp else 19.sp,
                             fontWeight = FontWeight.Normal
                         )
                     }
@@ -556,17 +560,22 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                 val isDigit = i in 6..8
                 val isOp = i == 9
                 val isPowerOp = label == "xʸ" || label == "yˣ"
-                val isActiveOp = (isOp && activeOperator == "×") || (isPowerOp && activeOperator == label)
+                val is2ndBtn = label == "2ⁿᵈ"
+                val isActiveOp = (isOp && activeOperator == "×") || (isPowerOp && activeOperator == label) || (is2ndBtn && is2nd)
 
                 val defaultBg = if (isOp) ColorOrange else if (isDigit) ColorDarkGray else ColorSciGray
                 val pressedBg = if (isOp) ColorOrangePressed else if (isDigit) ColorDarkGrayPressed else ColorSciGrayPressed
+
+                // Light gray background with black text for scientific active; White with orange text for arithmetic
+                val activeBgColor = if (isPowerOp || is2ndBtn) ColorSciActiveBg else ColorWhite
+                val activeFgColor = if (isPowerOp || is2ndBtn) ColorSciActiveFg else ColorOrange
 
                 UniversalIosButton(
                     defaultBg = defaultBg,
                     pressedBg = pressedBg,
                     defaultFg = ColorWhite,
-                    activeBg = ColorWhite,
-                    activeFg = ColorOrange,
+                    activeBg = activeBgColor,
+                    activeFg = activeFgColor,
                     isActive = isActiveOp,
                     modifier = Modifier.weight(1f).height(48.dp),
                     onClick = {
@@ -583,7 +592,7 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                     Text(
                         text = label,
                         color = fg,
-                        fontSize = if (isOp || isDigit) 24.sp else 16.sp,
+                        fontSize = if (isOp) 34.sp else if (isDigit) 30.sp else 19.sp,
                         fontWeight = FontWeight.Normal
                     )
                 }
@@ -596,18 +605,21 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
             sciCols[2].forEachIndexed { i, label ->
                 val isDigit = i in 6..8
                 val isOp = i == 9
-                val isRootOp = label == "ʸ√x" || label == "log_y"
+                val isRootOp = label == "ʸ√x" || label == "log_y" || label == "logᵧ"
                 val isActiveOp = (isOp && activeOperator == "−") || (isRootOp && activeOperator == label)
 
                 val defaultBg = if (isOp) ColorOrange else if (isDigit) ColorDarkGray else ColorSciGray
                 val pressedBg = if (isOp) ColorOrangePressed else if (isDigit) ColorDarkGrayPressed else ColorSciGrayPressed
 
+                val activeBgColor = if (isRootOp) ColorSciActiveBg else ColorWhite
+                val activeFgColor = if (isRootOp) ColorSciActiveFg else ColorOrange
+
                 UniversalIosButton(
                     defaultBg = defaultBg,
                     pressedBg = pressedBg,
                     defaultFg = ColorWhite,
-                    activeBg = ColorWhite,
-                    activeFg = ColorOrange,
+                    activeBg = activeBgColor,
+                    activeFg = activeFgColor,
                     isActive = isActiveOp,
                     modifier = Modifier.weight(1f).height(48.dp),
                     onClick = {
@@ -623,7 +635,7 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                     Text(
                         text = label,
                         color = fg,
-                        fontSize = if (isOp || isDigit) 24.sp else 16.sp,
+                        fontSize = if (isOp) 34.sp else if (isDigit) 30.sp else 19.sp,
                         fontWeight = FontWeight.Normal
                     )
                 }
@@ -642,12 +654,15 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                 val defaultBg = if (isOp) ColorOrange else if (isDigit) ColorDarkGray else ColorSciGray
                 val pressedBg = if (isOp) ColorOrangePressed else if (isDigit) ColorDarkGrayPressed else ColorSciGrayPressed
 
+                val activeBgColor = if (isEEOp) ColorSciActiveBg else ColorWhite
+                val activeFgColor = if (isEEOp) ColorSciActiveFg else ColorOrange
+
                 UniversalIosButton(
                     defaultBg = defaultBg,
                     pressedBg = pressedBg,
                     defaultFg = ColorWhite,
-                    activeBg = ColorWhite,
-                    activeFg = ColorOrange,
+                    activeBg = activeBgColor,
+                    activeFg = activeFgColor,
                     isActive = isActiveOp,
                     modifier = Modifier.weight(1f).height(48.dp),
                     onClick = {
@@ -663,7 +678,7 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                     Text(
                         text = label,
                         color = fg,
-                        fontSize = if (isOp || isDigit) 24.sp else 16.sp,
+                        fontSize = if (isOp) 34.sp else if (isDigit) 30.sp else 19.sp,
                         fontWeight = FontWeight.Normal
                     )
                 }
@@ -684,7 +699,7 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                     vm.toggleRad()
                 }
             ) { fg ->
-                Text(text = radButtonLabel, color = fg, fontSize = 16.sp, fontWeight = FontWeight.Normal)
+                Text(text = radButtonLabel, color = fg, fontSize = 19.sp, fontWeight = FontWeight.Normal)
             }
 
             listOf("sinh", "cosh", "tanh", "π", "Rand").forEach { label ->
@@ -704,7 +719,7 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                         vm.onScientific(displayLabel)
                     }
                 ) { fg ->
-                    Text(text = displayLabel, color = fg, fontSize = 15.sp, fontWeight = FontWeight.Normal)
+                    Text(text = displayLabel, color = fg, fontSize = 18.sp, fontWeight = FontWeight.Normal)
                 }
             }
 
@@ -719,7 +734,7 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                     vm.onDigit("0")
                 }
             ) { fg ->
-                Text(text = "0", color = fg, fontSize = 24.sp, fontWeight = FontWeight.Normal)
+                Text(text = "0", color = fg, fontSize = 30.sp, fontWeight = FontWeight.Normal)
             }
 
             UniversalIosButton(
@@ -732,7 +747,7 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                     vm.onDecimal()
                 }
             ) { fg ->
-                Text(text = ".", color = fg, fontSize = 26.sp, fontWeight = FontWeight.Bold, modifier = Modifier.offset(y = (-2).dp))
+                Text(text = ".", color = fg, fontSize = 30.sp, fontWeight = FontWeight.Bold, modifier = Modifier.offset(y = (-2).dp))
             }
 
             UniversalIosButton(
@@ -745,7 +760,7 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                     vm.onEquals()
                 }
             ) { fg ->
-                Text(text = "=", color = fg, fontSize = 28.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-1).dp))
+                Text(text = "=", color = fg, fontSize = 34.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-1).dp))
             }
         }
     }
