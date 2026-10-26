@@ -27,6 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.TextUnit
 
 // iOS Colors
 val ColorBlack = Color(0xFF000000)
@@ -290,7 +291,11 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
 }
 
 @Composable
-fun PlusMinusIcon(color: Color, modifier: Modifier = Modifier) {
+fun PlusMinusIcon(
+    color: Color,
+    modifier: Modifier = Modifier,
+    fontSize: TextUnit = 24.sp
+) {
     Box(
         modifier = modifier,
         contentAlignment = Alignment.Center
@@ -302,23 +307,23 @@ fun PlusMinusIcon(color: Color, modifier: Modifier = Modifier) {
             Text(
                 text = "+",
                 color = color,
-                fontSize = 17.sp,
+                fontSize = fontSize * 0.65f,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.offset(y = (-5).dp, x = 1.dp)
+                modifier = Modifier.offset(y = (-4).dp, x = 1.dp)
             )
             Text(
                 text = "/",
                 color = color,
-                fontSize = 28.sp,
+                fontSize = fontSize,
                 fontWeight = FontWeight.Light,
                 modifier = Modifier.padding(horizontal = 0.5.dp)
             )
             Text(
                 text = "−",
                 color = color,
-                fontSize = 19.sp,
+                fontSize = fontSize * 0.7f,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.offset(y = 5.dp, x = (-1).dp)
+                modifier = Modifier.offset(y = 4.dp, x = (-1).dp)
             )
         }
     }
