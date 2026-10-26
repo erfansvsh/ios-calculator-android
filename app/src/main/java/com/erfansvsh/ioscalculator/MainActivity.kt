@@ -5,8 +5,12 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
-import androidx.compose.foundation.background
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Surface
@@ -27,10 +31,14 @@ import androidx.compose.ui.unit.sp
 // iOS Colors
 val ColorBlack = Color(0xFF000000)
 val ColorDarkGray = Color(0xFF333333)
+val ColorDarkGrayPressed = Color(0xFF737373)
 val ColorLightGray = Color(0xFFA5A5A5)
+val ColorLightGrayPressed = Color(0xFFD9D9D9)
 val ColorOrange = Color(0xFFFF9F0A)
+val ColorOrangePressed = Color(0xFFFCC781)
 val ColorWhite = Color(0xFFFFFFFF)
 val ColorSciGray = Color(0xFF212121)
+val ColorSciGrayPressed = Color(0xFF424242)
 
 class MainActivity : ComponentActivity() {
     private val viewModel: CalculatorViewModel by viewModels()
@@ -62,12 +70,12 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
     val haptic = LocalHapticFeedback.current
 
     val clearLabel = if (displayValue != "0") "C" else "AC"
-    val formattedDisplay = vm.getFormattedDisplay()
+    val formattedDisplay = vm.getFormattedDisplay(isLandscape = false)
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp, vertical = 24.dp),
+            .padding(horizontal = 14.dp, vertical = 20.dp),
         verticalArrangement = Arrangement.Bottom
     ) {
         // Display with swipe to delete
@@ -86,11 +94,11 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
             contentAlignment = Alignment.BottomEnd
         ) {
             val fontSize = when {
-                formattedDisplay.length <= 6 -> 84.sp
-                formattedDisplay.length == 7 -> 72.sp
-                formattedDisplay.length == 8 -> 60.sp
-                formattedDisplay.length == 9 -> 50.sp
-                else -> 40.sp
+                formattedDisplay.length <= 6 -> 94.sp
+                formattedDisplay.length == 7 -> 80.sp
+                formattedDisplay.length == 8 -> 68.sp
+                formattedDisplay.length == 9 -> 56.sp
+                else -> 44.sp
             }
 
             Text(
@@ -102,7 +110,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                 maxLines = 1,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
             )
         }
 
@@ -111,117 +119,169 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
         // Row 1
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            CircleCalcButton(label = clearLabel, bg = ColorLightGray, fg = ColorBlack, modifier = Modifier.weight(1f)) {
+            IosCalcButton(
+                label = { Text(text = clearLabel, fontSize = 32.sp, fontWeight = FontWeight.Normal) },
+                defaultBg = ColorLightGray,
+                pressedBg = ColorLightGrayPressed,
+                defaultFg = ColorBlack,
+                modifier = Modifier.weight(1f)
+            ) {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 vm.onClear()
             }
-            CircleCalcButton(label = "±", bg = ColorLightGray, fg = ColorBlack, modifier = Modifier.weight(1f)) {
+
+            IosCalcButton(
+                label = { PlusMinusIcon(color = ColorBlack) },
+                defaultBg = ColorLightGray,
+                pressedBg = ColorLightGrayPressed,
+                defaultFg = ColorBlack,
+                modifier = Modifier.weight(1f)
+            ) {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 vm.onToggleSign()
             }
-            CircleCalcButton(label = "%", bg = ColorLightGray, fg = ColorBlack, modifier = Modifier.weight(1f)) {
+
+            IosCalcButton(
+                label = { Text(text = "%", fontSize = 32.sp, fontWeight = FontWeight.Normal) },
+                defaultBg = ColorLightGray,
+                pressedBg = ColorLightGrayPressed,
+                defaultFg = ColorBlack,
+                modifier = Modifier.weight(1f)
+            ) {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 vm.onPercent()
             }
-            OperatorCalcButton(label = "÷", isActive = activeOperator == "÷", modifier = Modifier.weight(1f)) {
+
+            IosOperatorButton(
+                label = "÷",
+                isActive = activeOperator == "÷",
+                modifier = Modifier.weight(1f)
+            ) {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 vm.onOperator("÷")
             }
         }
 
-        Spacer(modifier = Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         // Row 2
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            CircleCalcButton(label = "7", bg = ColorDarkGray, fg = ColorWhite, modifier = Modifier.weight(1f)) {
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                vm.onDigit("7")
+            listOf("7", "8", "9").forEach { digit ->
+                IosCalcButton(
+                    label = { Text(text = digit, fontSize = 40.sp, fontWeight = FontWeight.Normal) },
+                    defaultBg = ColorDarkGray,
+                    pressedBg = ColorDarkGrayPressed,
+                    defaultFg = ColorWhite,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    vm.onDigit(digit)
+                }
             }
-            CircleCalcButton(label = "8", bg = ColorDarkGray, fg = ColorWhite, modifier = Modifier.weight(1f)) {
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                vm.onDigit("8")
-            }
-            CircleCalcButton(label = "9", bg = ColorDarkGray, fg = ColorWhite, modifier = Modifier.weight(1f)) {
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                vm.onDigit("9")
-            }
-            OperatorCalcButton(label = "×", isActive = activeOperator == "×", modifier = Modifier.weight(1f)) {
+            IosOperatorButton(
+                label = "×",
+                isActive = activeOperator == "×",
+                modifier = Modifier.weight(1f)
+            ) {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 vm.onOperator("×")
             }
         }
 
-        Spacer(modifier = Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         // Row 3
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            CircleCalcButton(label = "4", bg = ColorDarkGray, fg = ColorWhite, modifier = Modifier.weight(1f)) {
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                vm.onDigit("4")
+            listOf("4", "5", "6").forEach { digit ->
+                IosCalcButton(
+                    label = { Text(text = digit, fontSize = 40.sp, fontWeight = FontWeight.Normal) },
+                    defaultBg = ColorDarkGray,
+                    pressedBg = ColorDarkGrayPressed,
+                    defaultFg = ColorWhite,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    vm.onDigit(digit)
+                }
             }
-            CircleCalcButton(label = "5", bg = ColorDarkGray, fg = ColorWhite, modifier = Modifier.weight(1f)) {
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                vm.onDigit("5")
-            }
-            CircleCalcButton(label = "6", bg = ColorDarkGray, fg = ColorWhite, modifier = Modifier.weight(1f)) {
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                vm.onDigit("6")
-            }
-            OperatorCalcButton(label = "−", isActive = activeOperator == "−", modifier = Modifier.weight(1f)) {
+            IosOperatorButton(
+                label = "−",
+                isActive = activeOperator == "−",
+                modifier = Modifier.weight(1f)
+            ) {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 vm.onOperator("−")
             }
         }
 
-        Spacer(modifier = Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         // Row 4
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            CircleCalcButton(label = "1", bg = ColorDarkGray, fg = ColorWhite, modifier = Modifier.weight(1f)) {
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                vm.onDigit("1")
+            listOf("1", "2", "3").forEach { digit ->
+                IosCalcButton(
+                    label = { Text(text = digit, fontSize = 40.sp, fontWeight = FontWeight.Normal) },
+                    defaultBg = ColorDarkGray,
+                    pressedBg = ColorDarkGrayPressed,
+                    defaultFg = ColorWhite,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    vm.onDigit(digit)
+                }
             }
-            CircleCalcButton(label = "2", bg = ColorDarkGray, fg = ColorWhite, modifier = Modifier.weight(1f)) {
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                vm.onDigit("2")
-            }
-            CircleCalcButton(label = "3", bg = ColorDarkGray, fg = ColorWhite, modifier = Modifier.weight(1f)) {
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                vm.onDigit("3")
-            }
-            OperatorCalcButton(label = "+", isActive = activeOperator == "+", modifier = Modifier.weight(1f)) {
+            IosOperatorButton(
+                label = "+",
+                isActive = activeOperator == "+",
+                modifier = Modifier.weight(1f)
+            ) {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 vm.onOperator("+")
             }
         }
 
-        Spacer(modifier = Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
-        // Row 5: 0 (double pill width), ., =
+        // Row 5: 0 (double pill), ., =
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            PillZeroButton(modifier = Modifier.weight(2f)) {
+            // Pill zero
+            IosPillZeroButton(modifier = Modifier.weight(2f)) {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 vm.onDigit("0")
             }
-            CircleCalcButton(label = ".", bg = ColorDarkGray, fg = ColorWhite, modifier = Modifier.weight(1f)) {
+
+            IosCalcButton(
+                label = { Text(text = ".", fontSize = 40.sp, fontWeight = FontWeight.Bold, modifier = Modifier.offset(y = (-4).dp)) },
+                defaultBg = ColorDarkGray,
+                pressedBg = ColorDarkGrayPressed,
+                defaultFg = ColorWhite,
+                modifier = Modifier.weight(1f)
+            ) {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 vm.onDecimal()
             }
-            CircleCalcButton(label = "=", bg = ColorOrange, fg = ColorWhite, modifier = Modifier.weight(1f)) {
+
+            IosCalcButton(
+                label = { Text(text = "=", fontSize = 42.sp, fontWeight = FontWeight.Normal) },
+                defaultBg = ColorOrange,
+                pressedBg = ColorOrangePressed,
+                defaultFg = ColorWhite,
+                modifier = Modifier.weight(1f)
+            ) {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 vm.onEquals()
             }
@@ -230,78 +290,154 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
 }
 
 @Composable
-fun CircleCalcButton(
-    label: String,
-    bg: Color,
-    fg: Color,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
-) {
-    Surface(
-        onClick = onClick,
-        modifier = modifier.aspectRatio(1f),
-        shape = CircleShape,
-        color = bg
+fun PlusMinusIcon(color: Color, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier,
+        contentAlignment = Alignment.Center
     ) {
-        Box(contentAlignment = Alignment.Center) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
             Text(
-                text = label,
-                color = fg,
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Normal
+                text = "+",
+                color = color,
+                fontSize = 17.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.offset(y = (-5).dp, x = 1.dp)
+            )
+            Text(
+                text = "/",
+                color = color,
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Light,
+                modifier = Modifier.padding(horizontal = 0.5.dp)
+            )
+            Text(
+                text = "−",
+                color = color,
+                fontSize = 19.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.offset(y = 5.dp, x = (-1).dp)
             )
         }
     }
 }
 
 @Composable
-fun OperatorCalcButton(
+fun IosCalcButton(
+    label: @Composable () -> Unit,
+    defaultBg: Color,
+    pressedBg: Color,
+    defaultFg: Color,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    val animatedBg by animateColorAsState(
+        targetValue = if (isPressed) pressedBg else defaultBg,
+        animationSpec = tween(durationMillis = 120),
+        label = "buttonBg"
+    )
+
+    Surface(
+        onClick = onClick,
+        interactionSource = interactionSource,
+        modifier = modifier.aspectRatio(1f),
+        shape = CircleShape,
+        color = animatedBg
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            label()
+        }
+    }
+}
+
+@Composable
+fun IosOperatorButton(
     label: String,
     isActive: Boolean,
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-    val bg = if (isActive) ColorWhite else ColorOrange
-    val fg = if (isActive) ColorOrange else ColorWhite
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    val targetBg = when {
+        isActive -> ColorWhite
+        isPressed -> ColorOrangePressed
+        else -> ColorOrange
+    }
+
+    val targetFg = when {
+        isActive -> ColorOrange
+        else -> ColorWhite
+    }
+
+    val animatedBg by animateColorAsState(
+        targetValue = targetBg,
+        animationSpec = tween(durationMillis = 120),
+        label = "opBg"
+    )
+
+    val animatedFg by animateColorAsState(
+        targetValue = targetFg,
+        animationSpec = tween(durationMillis = 120),
+        label = "opFg"
+    )
 
     Surface(
         onClick = onClick,
+        interactionSource = interactionSource,
         modifier = modifier.aspectRatio(1f),
         shape = CircleShape,
-        color = bg
+        color = animatedBg
     ) {
         Box(contentAlignment = Alignment.Center) {
             Text(
                 text = label,
-                color = fg,
-                fontSize = 38.sp,
-                fontWeight = FontWeight.Normal
+                color = animatedFg,
+                fontSize = 44.sp,
+                fontWeight = FontWeight.Normal,
+                modifier = Modifier.offset(y = (-1).dp)
             )
         }
     }
 }
 
 @Composable
-fun PillZeroButton(
+fun IosPillZeroButton(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    val animatedBg by animateColorAsState(
+        targetValue = if (isPressed) ColorDarkGrayPressed else ColorDarkGray,
+        animationSpec = tween(durationMillis = 120),
+        label = "zeroBg"
+    )
+
     Surface(
         onClick = onClick,
-        modifier = modifier.height(80.dp),
+        interactionSource = interactionSource,
+        modifier = modifier.aspectRatio(2.1f),
         shape = CircleShape,
-        color = ColorDarkGray
+        color = animatedBg
     ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(start = 32.dp),
+                .padding(start = 30.dp),
             contentAlignment = Alignment.CenterStart
         ) {
             Text(
                 text = "0",
                 color = ColorWhite,
-                fontSize = 32.sp,
+                fontSize = 40.sp,
                 fontWeight = FontWeight.Normal
             )
         }
@@ -317,12 +453,12 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
     val haptic = LocalHapticFeedback.current
 
     val clearLabel = if (displayValue != "0") "C" else "AC"
-    val formattedDisplay = vm.getFormattedDisplay()
+    val formattedDisplay = vm.getFormattedDisplay(isLandscape = true)
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(12.dp),
+            .padding(8.dp),
         verticalArrangement = Arrangement.Bottom
     ) {
         // Display
@@ -336,7 +472,7 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                 Text(
                     text = "Rad",
                     color = Color.Gray,
-                    fontSize = 12.sp,
+                    fontSize = 13.sp,
                     modifier = Modifier
                         .align(Alignment.BottomStart)
                         .padding(start = 12.dp, bottom = 4.dp)
@@ -345,7 +481,7 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
             Text(
                 text = formattedDisplay,
                 color = ColorWhite,
-                fontSize = 48.sp,
+                fontSize = 54.sp,
                 fontWeight = FontWeight.Light,
                 textAlign = TextAlign.End,
                 maxLines = 1,
@@ -355,150 +491,244 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
             )
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(6.dp))
 
         // 10 column grid rows for scientific landscape
         val sciCols = listOf(
             listOf("(", ")", "mc", "m+", "m-", "mr", clearLabel, "±", "%", "÷"),
-            listOf(if (is2nd) "2ⁿᵈ" else "2ⁿᵈ", "x²", "x³", "xʸ", "eˣ", "10ˣ", "7", "8", "9", "×"),
-            listOf("1/x", "²√x", "³√x", "ʸ√x", "ln", "log₁₀", "4", "5", "6", "−"),
-            listOf("x!", "sin", "cos", "tan", "e", "EE", "1", "2", "3", "+"),
-            listOf(if (isRad) "Rad" else "Deg", "sinh", "cosh", "tanh", "π", "Rand", "0", ".", "=")
+            listOf(if (is2nd) "2ⁿᵈ" else "2ⁿᵈ", "x²", "x³", "xʸ", if (is2nd) "yˣ" else "eˣ", if (is2nd) "2ˣ" else "10ˣ", "7", "8", "9", "×"),
+            listOf("1/x", "²√x", "³√x", "ʸ√x", if (is2nd) "log_y" else "ln", if (is2nd) "log₂" else "log₁₀", "4", "5", "6", "−"),
+            listOf("x!", if (is2nd) "sin⁻¹" else "sin", if (is2nd) "cos⁻¹" else "cos", if (is2nd) "tan⁻¹" else "tan", "e", "EE", "1", "2", "3", "+"),
+            listOf(if (isRad) "Rad" else "Deg", if (is2nd) "sinh⁻¹" else "sinh", if (is2nd) "cosh⁻¹" else "cosh", if (is2nd) "tanh⁻¹" else "tanh", "π", "Rand", "0", ".", "=")
         )
 
         // Row 1
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             sciCols[0].forEachIndexed { i, label ->
-                val bg = when (i) {
-                    6, 7, 8 -> ColorLightGray
-                    9 -> if (activeOperator == "÷") ColorWhite else ColorOrange
-                    else -> ColorSciGray
-                }
-                val fg = when (i) {
-                    6, 7, 8 -> ColorBlack
-                    9 -> if (activeOperator == "÷") ColorOrange else ColorWhite
-                    else -> ColorWhite
-                }
-                SmallCalcButton(label = label, bg = bg, fg = fg, modifier = Modifier.weight(1f)) {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    when (label) {
-                        "AC", "C" -> vm.onClear()
-                        "±" -> vm.onToggleSign()
-                        "%" -> vm.onPercent()
-                        "÷" -> vm.onOperator("÷")
-                        else -> vm.onScientific(label)
+                val isOp = i == 9
+                val isTopLight = i in 6..8
+                val defaultBg = if (isOp) ColorOrange else if (isTopLight) ColorLightGray else ColorSciGray
+                val pressedBg = if (isOp) ColorOrangePressed else if (isTopLight) ColorLightGrayPressed else ColorSciGrayPressed
+                val defaultFg = if (isTopLight) ColorBlack else ColorWhite
+
+                if (label == "±") {
+                    SmallIosButton(
+                        label = { PlusMinusIcon(color = ColorBlack, fontSize = 20.sp) },
+                        defaultBg = defaultBg,
+                        pressedBg = pressedBg,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        vm.onToggleSign()
+                    }
+                } else {
+                    SmallIosButton(
+                        label = {
+                            Text(
+                                text = label,
+                                color = if (isOp && activeOperator == "÷") ColorOrange else defaultFg,
+                                fontSize = if (isOp) 26.sp else 16.sp,
+                                fontWeight = FontWeight.Normal
+                            )
+                        },
+                        defaultBg = if (isOp && activeOperator == "÷") ColorWhite else defaultBg,
+                        pressedBg = pressedBg,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        when (label) {
+                            "AC", "C" -> vm.onClear()
+                            "%" -> vm.onPercent()
+                            "÷" -> vm.onOperator("÷")
+                            else -> vm.onScientific(label)
+                        }
                     }
                 }
             }
         }
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(5.dp))
 
         // Row 2
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             sciCols[1].forEachIndexed { i, label ->
-                val bg = when (i) {
-                    6, 7, 8 -> ColorDarkGray
-                    9 -> if (activeOperator == "×") ColorWhite else ColorOrange
-                    else -> ColorSciGray
-                }
-                val fg = when (i) {
-                    9 -> if (activeOperator == "×") ColorOrange else ColorWhite
-                    else -> ColorWhite
-                }
-                SmallCalcButton(label = label, bg = bg, fg = fg, modifier = Modifier.weight(1f)) {
+                val isDigit = i in 6..8
+                val isOp = i == 9
+                val isPowerOp = label == "xʸ" || label == "yˣ"
+                val isActiveOp = (isOp && activeOperator == "×") || (isPowerOp && activeOperator == label)
+
+                val defaultBg = if (isOp) ColorOrange else if (isDigit) ColorDarkGray else ColorSciGray
+                val pressedBg = if (isOp) ColorOrangePressed else if (isDigit) ColorDarkGrayPressed else ColorSciGrayPressed
+
+                SmallIosButton(
+                    label = {
+                        Text(
+                            text = label,
+                            color = if (isActiveOp) ColorOrange else ColorWhite,
+                            fontSize = if (isOp || isDigit) 24.sp else 16.sp,
+                            fontWeight = FontWeight.Normal
+                        )
+                    },
+                    defaultBg = if (isActiveOp) ColorWhite else defaultBg,
+                    pressedBg = pressedBg,
+                    modifier = Modifier.weight(1f)
+                ) {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    when (label) {
-                        "7", "8", "9" -> vm.onDigit(label)
-                        "×" -> vm.onOperator("×")
-                        "2ⁿᵈ" -> vm.toggle2nd()
+                    when {
+                        isDigit -> vm.onDigit(label)
+                        isOp -> vm.onOperator("×")
+                        label == "2ⁿᵈ" -> vm.toggle2nd()
+                        isPowerOp -> vm.onOperator(label)
                         else -> vm.onScientific(label)
                     }
                 }
             }
         }
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(5.dp))
 
         // Row 3
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             sciCols[2].forEachIndexed { i, label ->
-                val bg = when (i) {
-                    6, 7, 8 -> ColorDarkGray
-                    9 -> if (activeOperator == "−") ColorWhite else ColorOrange
-                    else -> ColorSciGray
-                }
-                val fg = when (i) {
-                    9 -> if (activeOperator == "−") ColorOrange else ColorWhite
-                    else -> ColorWhite
-                }
-                SmallCalcButton(label = label, bg = bg, fg = fg, modifier = Modifier.weight(1f)) {
+                val isDigit = i in 6..8
+                val isOp = i == 9
+                val isRootOp = label == "ʸ√x" || label == "log_y"
+                val isActiveOp = (isOp && activeOperator == "−") || (isRootOp && activeOperator == label)
+
+                val defaultBg = if (isOp) ColorOrange else if (isDigit) ColorDarkGray else ColorSciGray
+                val pressedBg = if (isOp) ColorOrangePressed else if (isDigit) ColorDarkGrayPressed else ColorSciGrayPressed
+
+                SmallIosButton(
+                    label = {
+                        Text(
+                            text = label,
+                            color = if (isActiveOp) ColorOrange else ColorWhite,
+                            fontSize = if (isOp || isDigit) 24.sp else 16.sp,
+                            fontWeight = FontWeight.Normal
+                        )
+                    },
+                    defaultBg = if (isActiveOp) ColorWhite else defaultBg,
+                    pressedBg = pressedBg,
+                    modifier = Modifier.weight(1f)
+                ) {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    when (label) {
-                        "4", "5", "6" -> vm.onDigit(label)
-                        "−" -> vm.onOperator("−")
+                    when {
+                        isDigit -> vm.onDigit(label)
+                        isOp -> vm.onOperator("−")
+                        isRootOp -> vm.onOperator(label)
                         else -> vm.onScientific(label)
                     }
                 }
             }
         }
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(5.dp))
 
         // Row 4
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             sciCols[3].forEachIndexed { i, label ->
-                val bg = when (i) {
-                    6, 7, 8 -> ColorDarkGray
-                    9 -> if (activeOperator == "+") ColorWhite else ColorOrange
-                    else -> ColorSciGray
-                }
-                val fg = when (i) {
-                    9 -> if (activeOperator == "+") ColorOrange else ColorWhite
-                    else -> ColorWhite
-                }
-                SmallCalcButton(label = label, bg = bg, fg = fg, modifier = Modifier.weight(1f)) {
+                val isDigit = i in 6..8
+                val isOp = i == 9
+                val isEEOp = label == "EE"
+                val isActiveOp = (isOp && activeOperator == "+") || (isEEOp && activeOperator == "EE")
+
+                val defaultBg = if (isOp) ColorOrange else if (isDigit) ColorDarkGray else ColorSciGray
+                val pressedBg = if (isOp) ColorOrangePressed else if (isDigit) ColorDarkGrayPressed else ColorSciGrayPressed
+
+                SmallIosButton(
+                    label = {
+                        Text(
+                            text = label,
+                            color = if (isActiveOp) ColorOrange else ColorWhite,
+                            fontSize = if (isOp || isDigit) 24.sp else 16.sp,
+                            fontWeight = FontWeight.Normal
+                        )
+                    },
+                    defaultBg = if (isActiveOp) ColorWhite else defaultBg,
+                    pressedBg = pressedBg,
+                    modifier = Modifier.weight(1f)
+                ) {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    when (label) {
-                        "1", "2", "3" -> vm.onDigit(label)
-                        "+" -> vm.onOperator("+")
+                    when {
+                        isDigit -> vm.onDigit(label)
+                        isOp -> vm.onOperator("+")
+                        isEEOp -> vm.onOperator("EE")
                         else -> vm.onScientific(label)
                     }
                 }
             }
         }
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(5.dp))
 
-        // Row 5: 6 sci buttons, 0 (double), ., =
+        // Row 5: 6 sci buttons, 0 (double width), ., =
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            SmallCalcButton(label = if (isRad) "Rad" else "Deg", bg = ColorSciGray, fg = ColorWhite, modifier = Modifier.weight(1f)) {
+            SmallIosButton(
+                label = { Text(text = if (isRad) "Rad" else "Deg", color = ColorWhite, fontSize = 15.sp) },
+                defaultBg = ColorSciGray,
+                pressedBg = ColorSciGrayPressed,
+                modifier = Modifier.weight(1f)
+            ) {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 vm.toggleRad()
             }
+
             listOf("sinh", "cosh", "tanh", "π", "Rand").forEach { label ->
-                SmallCalcButton(label = label, bg = ColorSciGray, fg = ColorWhite, modifier = Modifier.weight(1f)) {
+                val displayLabel = when {
+                    is2nd && label == "sinh" -> "sinh⁻¹"
+                    is2nd && label == "cosh" -> "cosh⁻¹"
+                    is2nd && label == "tanh" -> "tanh⁻¹"
+                    else -> label
+                }
+                SmallIosButton(
+                    label = { Text(text = displayLabel, color = ColorWhite, fontSize = 15.sp) },
+                    defaultBg = ColorSciGray,
+                    pressedBg = ColorSciGrayPressed,
+                    modifier = Modifier.weight(1f)
+                ) {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    vm.onScientific(label)
+                    vm.onScientific(displayLabel)
                 }
             }
+
             // 0 spanning 2 weight
+            val interactionSource = remember { MutableInteractionSource() }
+            val isZeroPressed by interactionSource.collectIsPressedAsState()
+            val animatedZeroBg by animateColorAsState(
+                targetValue = if (isZeroPressed) ColorDarkGrayPressed else ColorDarkGray,
+                animationSpec = tween(120),
+                label = "landZeroBg"
+            )
+
             Surface(
                 onClick = {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     vm.onDigit("0")
                 },
+                interactionSource = interactionSource,
                 modifier = Modifier
                     .weight(2f)
-                    .height(44.dp),
+                    .height(48.dp),
                 shape = CircleShape,
-                color = ColorDarkGray
+                color = animatedZeroBg
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Text(text = "0", color = ColorWhite, fontSize = 20.sp)
+                    Text(text = "0", color = ColorWhite, fontSize = 24.sp)
                 }
             }
-            SmallCalcButton(label = ".", bg = ColorDarkGray, fg = ColorWhite, modifier = Modifier.weight(1f)) {
+
+            SmallIosButton(
+                label = { Text(text = ".", color = ColorWhite, fontSize = 26.sp, fontWeight = FontWeight.Bold) },
+                defaultBg = ColorDarkGray,
+                pressedBg = ColorDarkGrayPressed,
+                modifier = Modifier.weight(1f)
+            ) {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 vm.onDecimal()
             }
-            SmallCalcButton(label = "=", bg = ColorOrange, fg = ColorWhite, modifier = Modifier.weight(1f)) {
+
+            SmallIosButton(
+                label = { Text(text = "=", color = ColorWhite, fontSize = 26.sp) },
+                defaultBg = ColorOrange,
+                pressedBg = ColorOrangePressed,
+                modifier = Modifier.weight(1f)
+            ) {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 vm.onEquals()
             }
@@ -507,26 +737,31 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
 }
 
 @Composable
-fun SmallCalcButton(
-    label: String,
-    bg: Color,
-    fg: Color,
+fun SmallIosButton(
+    label: @Composable () -> Unit,
+    defaultBg: Color,
+    pressedBg: Color,
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    val animatedBg by animateColorAsState(
+        targetValue = if (isPressed) pressedBg else defaultBg,
+        animationSpec = tween(durationMillis = 120),
+        label = "smallBg"
+    )
+
     Surface(
         onClick = onClick,
-        modifier = modifier.height(44.dp),
+        interactionSource = interactionSource,
+        modifier = modifier.height(48.dp),
         shape = CircleShape,
-        color = bg
+        color = animatedBg
     ) {
         Box(contentAlignment = Alignment.Center) {
-            Text(
-                text = label,
-                color = fg,
-                fontSize = if (label.length > 3) 12.sp else 16.sp,
-                fontWeight = FontWeight.Normal
-            )
+            label()
         }
     }
 }

@@ -4,6 +4,9 @@ import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import java.math.BigDecimal
+import java.math.MathContext
+import java.math.RoundingMode
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.util.Locale
@@ -37,10 +40,43 @@ class CalculatorViewModel : ViewModel() {
     private val symbols = DecimalFormatSymbols(Locale.US)
     private val integerFormat = DecimalFormat("#,###", symbols)
 
-    fun getFormattedDisplay(): String {
+    fun getFormattedDisplay(isLandscape: Boolean): String {
         val raw = _displayValue.value
         if (raw == "Error") return "Error"
 
+        // During manual typing with dot or trailing zeros (e.g., "3." or "3.00")
+        if (raw.endsWith(".") || (raw.contains(".") && !waitingForOperand && !raw.contains("e") && !raw.contains("E"))) {
+            return formatNumberWithCommas(raw)
+        }
+
+        val num = raw.toDoubleOrNull() ?: return raw
+        if (num == 0.0) {
+            return if (raw.startsWith("-")) "-0" else "0"
+        }
+
+        val absNum = abs(num)
+        val maxDigits = if (isLandscape) 16 else 9
+        val maxLimit = if (isLandscape) 1e16 else 1e9
+        val minLimit = 1e-8
+
+        // Scientific notation only when number exceeds display limits
+        if (absNum >= maxLimit || absNum < minLimit) {
+            val expFormat = if (isLandscape) "%.10e" else "%.5e"
+            val expStr = String.format(Locale.US, expFormat, num)
+            return expStr.replace("+", "").replace("e0", "e").replace("e-0", "e-")
+        }
+
+        return try {
+            val mc = MathContext(maxDigits, RoundingMode.HALF_UP)
+            val bd = BigDecimal(num.toString(), mc)
+            val plain = bd.stripTrailingZeros().toPlainString()
+            formatNumberWithCommas(plain)
+        } catch (e: Exception) {
+            formatNumberWithCommas(raw)
+        }
+    }
+
+    private fun formatNumberWithCommas(raw: String): String {
         val isNegative = raw.startsWith("-")
         val clean = if (isNegative) raw.substring(1) else raw
 
@@ -84,7 +120,7 @@ class CalculatorViewModel : ViewModel() {
                 _displayValue.value = "-$digit"
             } else {
                 val digitsOnly = current.replace(Regex("[.,-]"), "")
-                if (digitsOnly.length < 9) {
+                if (digitsOnly.length < 16) {
                     _displayValue.value = current + digit
                 }
             }
@@ -136,7 +172,7 @@ class CalculatorViewModel : ViewModel() {
         } else {
             currentNum / 100.0
         }
-        _displayValue.value = formatResult(res)
+        _displayValue.value = res.toString()
     }
 
     fun onClear() {
@@ -187,8 +223,7 @@ class CalculatorViewModel : ViewModel() {
                 setError()
                 return
             }
-            val formatted = formatResult(result)
-            _displayValue.value = formatted
+            _displayValue.value = result.toString()
             previousValue = result
             lastOperation = Pair(pendingOperator!!, currentNum)
         } else {
@@ -212,7 +247,7 @@ class CalculatorViewModel : ViewModel() {
                 return
             }
             lastOperation = Pair(pendingOperator!!, currentNum)
-            _displayValue.value = formatResult(result)
+            _displayValue.value = result.toString()
             previousValue = null
             pendingOperator = null
             _activeOperatorHighlight.value = null
@@ -225,7 +260,7 @@ class CalculatorViewModel : ViewModel() {
                 setError()
                 return
             }
-            _displayValue.value = formatResult(result)
+            _displayValue.value = result.toString()
             waitingForOperand = true
         }
     }
@@ -236,21 +271,12 @@ class CalculatorViewModel : ViewModel() {
             "−" -> a - b
             "×" -> a * b
             "÷" -> if (b == 0.0) Double.NaN else a / b
+            "xʸ" -> a.pow(b)
+            "yˣ" -> b.pow(a)
+            "ʸ√x" -> if (b == 0.0) Double.NaN else a.pow(1.0 / b)
+            "log_y" -> if (a <= 0.0 || b <= 0.0 || b == 1.0) Double.NaN else log(a, b)
+            "EE" -> a * 10.0.pow(b)
             else -> b
-        }
-    }
-
-    private fun formatResult(num: Double): String {
-        if (num.isNaN() || num.isInfinite()) return "Error"
-        if (num == 0.0) return "0"
-
-        // Round cleanly to 9 significant figures
-        val df = DecimalFormat("#.########", symbols)
-        val formatted = df.format(num)
-        return if (formatted.length > 9) {
-            String.format(Locale.US, "%.4e", num).replace("+", "")
-        } else {
-            formatted
         }
     }
 
@@ -276,30 +302,56 @@ class CalculatorViewModel : ViewModel() {
         val rad = _isRad.value
         val sec = _is2nd.value
 
+        // Check if it's a binary operator (like xʸ, ʸ√x, etc.)
+        when (fn) {
+            "xʸ", "yˣ", "ʸ√x", "log_y", "EE" -> {
+                onOperator(fn)
+                return
+            }
+            "π" -> {
+                _displayValue.value = Math.PI.toString()
+                waitingForOperand = true
+                return
+            }
+            "e" -> {
+                _displayValue.value = Math.E.toString()
+                waitingForOperand = true
+                return
+            }
+            "Rand" -> {
+                _displayValue.value = Math.random().toString()
+                waitingForOperand = true
+                return
+            }
+        }
+
+        // Unary functions
         val res = when (fn) {
             "x²" -> curr.pow(2)
             "x³" -> curr.pow(3)
             "10ˣ" -> 10.0.pow(curr)
+            "2ˣ" -> 2.0.pow(curr)
             "eˣ" -> exp(curr)
             "1/x" -> if (curr == 0.0) Double.NaN else 1.0 / curr
             "²√x" -> if (curr < 0) Double.NaN else sqrt(curr)
             "³√x" -> cbrt(curr)
             "ln" -> if (curr <= 0) Double.NaN else ln(curr)
             "log₁₀" -> if (curr <= 0) Double.NaN else log10(curr)
+            "log₂" -> if (curr <= 0) Double.NaN else log2(curr)
             "x!" -> factorial(curr)
             "sin" -> if (sec) asin(curr) else sin(if (rad) curr else Math.toRadians(curr))
             "cos" -> if (sec) acos(curr) else cos(if (rad) curr else Math.toRadians(curr))
             "tan" -> if (sec) atan(curr) else tan(if (rad) curr else Math.toRadians(curr))
-            "π" -> Math.PI
-            "e" -> Math.E
-            "Rand" -> Math.random()
+            "sinh" -> if (sec) asinh(curr) else sinh(curr)
+            "cosh" -> if (sec) acosh(curr) else cosh(curr)
+            "tanh" -> if (sec) atanh(curr) else tanh(curr)
             else -> curr
         }
 
         if (res.isNaN() || res.isInfinite()) {
             setError()
         } else {
-            _displayValue.value = formatResult(res)
+            _displayValue.value = res.toString()
             waitingForOperand = true
         }
     }
@@ -312,4 +364,8 @@ class CalculatorViewModel : ViewModel() {
         }
         return res
     }
+
+    private fun asinh(x: Double): Double = ln(x + sqrt(x * x + 1.0))
+    private fun acosh(x: Double): Double = if (x < 1.0) Double.NaN else ln(x + sqrt(x * x - 1.0))
+    private fun atanh(x: Double): Double = if (abs(x) >= 1.0) Double.NaN else 0.5 * ln((1.0 + x) / (1.0 - x))
 }
