@@ -20,9 +20,19 @@ android {
         }
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = rootProject.file("release-key.jks")
+            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: "iOSCalcRelease2025"
+            keyAlias = System.getenv("KEY_ALIAS") ?: "ios-calculator"
+            keyPassword = System.getenv("KEY_PASSWORD") ?: "iOSCalcRelease2025"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
