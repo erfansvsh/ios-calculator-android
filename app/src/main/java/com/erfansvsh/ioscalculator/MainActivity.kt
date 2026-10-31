@@ -10,6 +10,8 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -20,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -110,7 +113,10 @@ class MainActivity : ComponentActivity() {
 
 /**
  * Universal iOS button component providing authentic Apple breath-like animation:
- * Immediate touch-down (BUTTON_PRESS_DOWN_MS), followed by a soft, slower lingering breath-like fade out (BUTTON_RELEASE_FADE_MS) on release.
+ * - Immediate touch-down (BUTTON_PRESS_DOWN_MS = 80ms)
+ * - Soft, slower lingering breath-like fade out (BUTTON_RELEASE_FADE_MS = 480ms) on release
+ * - Exactly unified across ALL buttons: numbers, scientific, AC, +/-, %, and operators
+ * - No Android ripple (indication = null) so colors never flash or conflict
  */
 @Composable
 fun UniversalIosButton(
@@ -128,9 +134,10 @@ fun UniversalIosButton(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
+    // Always prioritize isPressed so EVERY button gives the identical tactile touch feedback
     val targetBg = when {
-        isActive -> activeBg
         isPressed -> pressedBg
+        isActive -> activeBg
         else -> defaultBg
     }
 
@@ -140,7 +147,7 @@ fun UniversalIosButton(
     }
 
     // Authentic Apple breath-like color transition:
-    // Immediate soft touch-down, followed by an elegant, slower fade out on finger lift
+    // Identical timing and easing across all button types
     val animatedBg by animateColorAsState(
         targetValue = targetBg,
         animationSpec = if (isPressed) {
@@ -161,16 +168,18 @@ fun UniversalIosButton(
         label = "iosBtnFg"
     )
 
-    Surface(
-        onClick = onClick,
-        interactionSource = interactionSource,
-        modifier = modifier,
-        shape = shape,
-        color = animatedBg
+    Box(
+        modifier = modifier
+            .clip(shape)
+            .background(animatedBg)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null, // Disables Android ripple completely so all buttons share the identical iOS breath animation
+                onClick = onClick
+            ),
+        contentAlignment = Alignment.Center
     ) {
-        Box(contentAlignment = Alignment.Center) {
-            content(animatedFg)
-        }
+        content(animatedFg)
     }
 }
 
