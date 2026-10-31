@@ -497,7 +497,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
 fun LandscapeCalculator(vm: CalculatorViewModel) {
     val displayValue by vm.displayValue.collectAsState()
     val activeOperator by vm.activeOperator.collectAsState()
-    val isRadMode by vm.isRad.collectAsState()
+    val isRadMode by vm.isRadMode.collectAsState()
     val is2nd by vm.is2nd.collectAsState()
     val haptic = LocalHapticFeedback.current
 
