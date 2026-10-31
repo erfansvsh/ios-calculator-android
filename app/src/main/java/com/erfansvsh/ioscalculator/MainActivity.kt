@@ -1,6 +1,7 @@
 package com.erfansvsh.ioscalculator
 
 import android.content.res.Configuration
+import android.graphics.Typeface
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
@@ -28,7 +29,9 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.TextUnit
@@ -77,6 +80,23 @@ val ColorMrActiveFg = Color(0xFFFFFFFF)
 // Other active scientific toggle buttons (e.g., 2nd)
 val ColorSciActiveBg = Color(0xFF808080)
 val ColorSciActiveFg = Color(0xFFFFFFFF)
+
+/**
+ * Loads authentic Apple San Francisco (SF Pro) font from assets,
+ * falling back gracefully to FontFamily.SansSerif if the asset is missing.
+ */
+@Composable
+fun rememberSfFont(assetName: String): FontFamily {
+    val context = LocalContext.current
+    return remember(assetName) {
+        try {
+            val typeface = Typeface.createFromAsset(context.assets, "fonts/$assetName")
+            FontFamily(typeface)
+        } catch (e: Exception) {
+            FontFamily.SansSerif
+        }
+    }
+}
 
 class MainActivity : ComponentActivity() {
     private val viewModel: CalculatorViewModel by viewModels()
@@ -187,8 +207,8 @@ fun UniversalIosButton(
 fun PlusMinusIcon(
     color: Color,
     modifier: Modifier = Modifier,
-    fontSize: TextUnit = 36.sp,
-    isBold: Boolean = true
+    fontFamily: FontFamily,
+    fontSize: TextUnit = 36.sp
 ) {
     Box(
         modifier = modifier,
@@ -201,22 +221,25 @@ fun PlusMinusIcon(
             Text(
                 text = "+",
                 color = color,
-                fontSize = fontSize * 0.65f,
-                fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal,
+                fontFamily = fontFamily,
+                fontSize = fontSize * 0.62f,
+                fontWeight = FontWeight.Normal,
                 modifier = Modifier.offset(y = (-5).dp, x = 1.dp)
             )
             Text(
                 text = "/",
                 color = color,
-                fontSize = fontSize * 0.9f,
-                fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal,
+                fontFamily = fontFamily,
+                fontSize = fontSize * 0.85f,
+                fontWeight = FontWeight.Normal,
                 modifier = Modifier.offset(y = (-1).dp)
             )
             Text(
                 text = "−",
                 color = color,
-                fontSize = fontSize * 0.75f,
-                fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal,
+                fontFamily = fontFamily,
+                fontSize = fontSize * 0.72f,
+                fontWeight = FontWeight.Normal,
                 modifier = Modifier.offset(y = (4).dp, x = (-1).dp)
             )
         }
@@ -228,6 +251,11 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
     val displayValue by vm.displayValue.collectAsState()
     val activeOperator by vm.activeOperator.collectAsState()
     val haptic = LocalHapticFeedback.current
+
+    // Load authentic Apple SF Pro fonts with fallback
+    val sfDisplayThin = rememberSfFont("sf_pro_display_thin.otf")
+    val sfDisplayLight = rememberSfFont("sf_pro_display_light.otf")
+    val sfTextRegular = rememberSfFont("sf_pro_text_regular.otf")
 
     val clearLabel = if (displayValue != "0") "C" else "AC"
     val formattedDisplay = formatPortraitDisplay(displayValue)
@@ -255,20 +283,21 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                 },
             contentAlignment = Alignment.BottomEnd
         ) {
-            val fontSize = when {
-                formattedDisplay.length <= 5 -> 100.sp
-                formattedDisplay.length == 6 -> 90.sp
-                formattedDisplay.length == 7 -> 82.sp
-                formattedDisplay.length == 8 -> 70.sp
-                formattedDisplay.length == 9 -> 58.sp
-                else -> 48.sp
+            val (fontSize, displayFont) = when {
+                formattedDisplay.length <= 5 -> 100.sp to sfDisplayThin
+                formattedDisplay.length == 6 -> 90.sp to sfDisplayThin
+                formattedDisplay.length == 7 -> 80.sp to sfDisplayLight
+                formattedDisplay.length == 8 -> 70.sp to sfDisplayLight
+                formattedDisplay.length == 9 -> 58.sp to sfDisplayLight
+                else -> 48.sp to sfDisplayLight
             }
 
             Text(
                 text = formattedDisplay,
                 color = ColorWhite,
                 fontSize = fontSize,
-                fontWeight = FontWeight.Light,
+                fontFamily = displayFont,
+                fontWeight = FontWeight.W200,
                 textAlign = TextAlign.End,
                 maxLines = 1,
                 modifier = Modifier
@@ -294,10 +323,10 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                     vm.onClear()
                 }
             ) { fg ->
-                Text(text = clearLabel, color = fg, fontSize = 38.sp, fontWeight = FontWeight.Normal)
+                Text(text = clearLabel, color = fg, fontFamily = sfTextRegular, fontSize = 35.sp, fontWeight = FontWeight.Normal)
             }
 
-            // Bold +/- button
+            // Authentic iOS +/- icon
             UniversalIosButton(
                 defaultBg = ColorLightGray,
                 pressedBg = ColorLightGrayPressed,
@@ -308,10 +337,10 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                     vm.onToggleSign()
                 }
             ) { fg ->
-                PlusMinusIcon(color = fg, fontSize = 36.sp, isBold = true)
+                PlusMinusIcon(color = fg, fontFamily = sfTextRegular, fontSize = 36.sp)
             }
 
-            // Bold % button
+            // Authentic iOS % button with SF Pro glyph
             UniversalIosButton(
                 defaultBg = ColorLightGray,
                 pressedBg = ColorLightGrayPressed,
@@ -322,7 +351,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                     vm.onPercent()
                 }
             ) { fg ->
-                Text(text = "%", color = fg, fontSize = 38.sp, fontWeight = FontWeight.Bold)
+                Text(text = "%", color = fg, fontFamily = sfTextRegular, fontSize = 35.sp, fontWeight = FontWeight.Normal)
             }
 
             UniversalIosButton(
@@ -338,7 +367,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                     vm.onOperator("÷")
                 }
             ) { fg ->
-                Text(text = "÷", color = fg, fontSize = 48.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-3).dp))
+                Text(text = "÷", color = fg, fontFamily = sfTextRegular, fontSize = 44.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-3).dp))
             }
         }
 
@@ -360,7 +389,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                         vm.onDigit(digit)
                     }
                 ) { fg ->
-                    Text(text = digit, color = fg, fontSize = 42.sp, fontWeight = FontWeight.Normal)
+                    Text(text = digit, color = fg, fontFamily = sfTextRegular, fontSize = 40.sp, fontWeight = FontWeight.Normal)
                 }
             }
 
@@ -377,7 +406,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                     vm.onOperator("×")
                 }
             ) { fg ->
-                Text(text = "×", color = fg, fontSize = 48.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-3).dp))
+                Text(text = "×", color = fg, fontFamily = sfTextRegular, fontSize = 44.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-3).dp))
             }
         }
 
@@ -399,7 +428,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                         vm.onDigit(digit)
                     }
                 ) { fg ->
-                    Text(text = digit, color = fg, fontSize = 42.sp, fontWeight = FontWeight.Normal)
+                    Text(text = digit, color = fg, fontFamily = sfTextRegular, fontSize = 40.sp, fontWeight = FontWeight.Normal)
                 }
             }
 
@@ -416,7 +445,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                     vm.onOperator("−")
                 }
             ) { fg ->
-                Text(text = "−", color = fg, fontSize = 48.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-2).dp))
+                Text(text = "−", color = fg, fontFamily = sfTextRegular, fontSize = 44.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-2).dp))
             }
         }
 
@@ -438,7 +467,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                         vm.onDigit(digit)
                     }
                 ) { fg ->
-                    Text(text = digit, color = fg, fontSize = 42.sp, fontWeight = FontWeight.Normal)
+                    Text(text = digit, color = fg, fontFamily = sfTextRegular, fontSize = 40.sp, fontWeight = FontWeight.Normal)
                 }
             }
 
@@ -455,7 +484,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                     vm.onOperator("+")
                 }
             ) { fg ->
-                Text(text = "+", color = fg, fontSize = 48.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-2).dp))
+                Text(text = "+", color = fg, fontFamily = sfTextRegular, fontSize = 44.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-2).dp))
             }
         }
 
@@ -486,7 +515,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                             .fillMaxHeight(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(text = "0", color = fg, fontSize = 42.sp, fontWeight = FontWeight.Normal)
+                        Text(text = "0", color = fg, fontFamily = sfTextRegular, fontSize = 40.sp, fontWeight = FontWeight.Normal)
                     }
                     Spacer(modifier = Modifier.width(12.dp))
                     Spacer(modifier = Modifier.weight(1f))
@@ -503,7 +532,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                     vm.onDecimal()
                 }
             ) { fg ->
-                Text(text = ".", color = fg, fontSize = 42.sp, fontWeight = FontWeight.Bold, modifier = Modifier.offset(y = (-4).dp))
+                Text(text = ".", color = fg, fontFamily = sfTextRegular, fontSize = 40.sp, fontWeight = FontWeight.Bold, modifier = Modifier.offset(y = (-4).dp))
             }
 
             UniversalIosButton(
@@ -516,7 +545,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                     vm.onEquals()
                 }
             ) { fg ->
-                Text(text = "=", color = fg, fontSize = 48.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-2).dp))
+                Text(text = "=", color = fg, fontFamily = sfTextRegular, fontSize = 44.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-2).dp))
             }
         }
     }
@@ -529,6 +558,10 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
     val isRadMode by vm.isRadMode.collectAsState()
     val is2nd by vm.is2nd.collectAsState()
     val haptic = LocalHapticFeedback.current
+
+    // Load authentic Apple SF Pro fonts with fallback
+    val sfDisplayThin = rememberSfFont("sf_pro_display_thin.otf")
+    val sfTextRegular = rememberSfFont("sf_pro_text_regular.otf")
 
     // Local memory presence state for 'mr' highlight: active on m+/m-, cleared on mc
     var hasMemory by remember { mutableStateOf(false) }
@@ -562,6 +595,7 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                 Text(
                     text = "Rad",
                     color = ColorLightGray,
+                    fontFamily = sfTextRegular,
                     fontSize = 14.sp,
                     modifier = Modifier
                         .align(Alignment.BottomStart)
@@ -571,8 +605,9 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
             Text(
                 text = formattedDisplay,
                 color = ColorWhite,
+                fontFamily = sfDisplayThin,
                 fontSize = 64.sp,
-                fontWeight = FontWeight.Light,
+                fontWeight = FontWeight.W200,
                 textAlign = TextAlign.End,
                 maxLines = 1,
                 modifier = Modifier
@@ -640,13 +675,14 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                     }
                 ) { fg ->
                     if (label == "±") {
-                        PlusMinusIcon(color = fg, fontSize = 24.sp, isBold = true)
+                        PlusMinusIcon(color = fg, fontFamily = sfTextRegular, fontSize = 24.sp)
                     } else {
                         Text(
                             text = label,
                             color = fg,
+                            fontFamily = sfTextRegular,
                             fontSize = if (isOp) 34.sp else if (isTopLight) 22.sp else 19.sp,
-                            fontWeight = if (label == "%" || label == "±") FontWeight.Bold else FontWeight.Normal
+                            fontWeight = FontWeight.Normal
                         )
                     }
                 }
@@ -691,6 +727,7 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                     Text(
                         text = label,
                         color = fg,
+                        fontFamily = sfTextRegular,
                         fontSize = if (isOp) 34.sp else if (isDigit) 30.sp else 19.sp,
                         fontWeight = FontWeight.Normal
                     )
@@ -734,6 +771,7 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                     Text(
                         text = label,
                         color = fg,
+                        fontFamily = sfTextRegular,
                         fontSize = if (isOp) 34.sp else if (isDigit) 30.sp else 19.sp,
                         fontWeight = FontWeight.Normal
                     )
@@ -777,6 +815,7 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                     Text(
                         text = label,
                         color = fg,
+                        fontFamily = sfTextRegular,
                         fontSize = if (isOp) 34.sp else if (isDigit) 30.sp else 19.sp,
                         fontWeight = FontWeight.Normal
                     )
@@ -799,7 +838,7 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                     vm.toggleRad()
                 }
             ) { fg ->
-                Text(text = radButtonLabel, color = fg, fontSize = 19.sp, fontWeight = FontWeight.Normal)
+                Text(text = radButtonLabel, color = fg, fontFamily = sfTextRegular, fontSize = 19.sp, fontWeight = FontWeight.Normal)
             }
 
             listOf("sinh", "cosh", "tanh", "π", "Rand").forEach { label ->
@@ -819,7 +858,7 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                         vm.onScientific(displayLabel)
                     }
                 ) { fg ->
-                    Text(text = displayLabel, color = fg, fontSize = 18.sp, fontWeight = FontWeight.Normal)
+                    Text(text = displayLabel, color = fg, fontFamily = sfTextRegular, fontSize = 18.sp, fontWeight = FontWeight.Normal)
                 }
             }
 
@@ -841,7 +880,7 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                             .fillMaxHeight(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(text = "0", color = fg, fontSize = 30.sp, fontWeight = FontWeight.Normal)
+                        Text(text = "0", color = fg, fontFamily = sfTextRegular, fontSize = 30.sp, fontWeight = FontWeight.Normal)
                     }
                     Spacer(modifier = Modifier.width(6.dp))
                     Spacer(modifier = Modifier.weight(1f))
@@ -859,7 +898,7 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                     vm.onDecimal()
                 }
             ) { fg ->
-                Text(text = ".", color = fg, fontSize = 30.sp, fontWeight = FontWeight.Bold, modifier = Modifier.offset(y = (-2).dp))
+                Text(text = ".", color = fg, fontFamily = sfTextRegular, fontSize = 30.sp, fontWeight = FontWeight.Bold, modifier = Modifier.offset(y = (-2).dp))
             }
 
             // Equals button: Unified with landscape row matching height 48.dp
@@ -873,7 +912,7 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                     vm.onEquals()
                 }
             ) { fg ->
-                Text(text = "=", color = fg, fontSize = 34.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-1).dp))
+                Text(text = "=", color = fg, fontFamily = sfTextRegular, fontSize = 34.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-1).dp))
             }
         }
     }
