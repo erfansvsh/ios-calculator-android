@@ -6,6 +6,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -68,8 +71,8 @@ class MainActivity : ComponentActivity() {
 }
 
 /**
- * Universal iOS button component providing identical animation timing (120ms tween),
- * press states, and active inversion across both Portrait and Landscape views.
+ * Universal iOS button component providing authentic Apple breath-like animation:
+ * Smooth touch-down (80ms), followed by a soft, slower lingering breath-like fade out (380ms) on release.
  */
 @Composable
 fun UniversalIosButton(
@@ -98,16 +101,34 @@ fun UniversalIosButton(
         else -> defaultFg
     }
 
+    // Authentic Apple breath-like color transition:
+    // Immediate soft touch-down, followed by an elegant, slower fade out on finger lift
+    val bgAnimSpec = remember(isPressed, isActive) {
+        when {
+            isActive -> tween<Color>(durationMillis = 200, easing = LinearOutSlowInEasing)
+            isPressed -> tween<Color>(durationMillis = 80, easing = LinearEasing)
+            else -> tween<Color>(durationMillis = 380, easing = FastOutSlowInEasing)
+        }
+    }
+
+    val fgAnimSpec = remember(isPressed, isActive) {
+        when {
+            isActive -> tween<Color>(durationMillis = 200, easing = LinearOutSlowInEasing)
+            isPressed -> tween<Color>(durationMillis = 80, easing = LinearEasing)
+            else -> tween<Color>(durationMillis = 350, easing = FastOutSlowInEasing)
+        }
+    }
+
     val animatedBg by animateColorAsState(
         targetValue = targetBg,
-        animationSpec = tween(durationMillis = 120),
-        label = "btnBg"
+        animationSpec = bgAnimSpec,
+        label = "iosBtnBg"
     )
 
     val animatedFg by animateColorAsState(
         targetValue = targetFg,
-        animationSpec = tween(durationMillis = 120),
-        label = "btnFg"
+        animationSpec = fgAnimSpec,
+        label = "iosBtnFg"
     )
 
     Surface(
@@ -127,7 +148,8 @@ fun UniversalIosButton(
 fun PlusMinusIcon(
     color: Color,
     modifier: Modifier = Modifier,
-    fontSize: TextUnit = 36.sp
+    fontSize: TextUnit = 36.sp,
+    isBold: Boolean = true
 ) {
     Box(
         modifier = modifier,
@@ -141,21 +163,21 @@ fun PlusMinusIcon(
                 text = "+",
                 color = color,
                 fontSize = fontSize * 0.65f,
-                fontWeight = FontWeight.Bold,
+                fontWeight = if (isBold) FontWeight.ExtraBold else FontWeight.Bold,
                 modifier = Modifier.offset(y = (-5).dp, x = 1.dp)
             )
             Text(
                 text = "/",
                 color = color,
                 fontSize = fontSize,
-                fontWeight = FontWeight.Light,
+                fontWeight = if (isBold) FontWeight.Bold else FontWeight.Light,
                 modifier = Modifier.padding(horizontal = 0.5.dp)
             )
             Text(
                 text = "−",
                 color = color,
                 fontSize = fontSize * 0.7f,
-                fontWeight = FontWeight.Bold,
+                fontWeight = if (isBold) FontWeight.ExtraBold else FontWeight.Bold,
                 modifier = Modifier.offset(y = 5.dp, x = (-1).dp)
             )
         }
@@ -192,7 +214,6 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                 },
             contentAlignment = Alignment.BottomEnd
         ) {
-            // Larger iOS headline typography
             val fontSize = when {
                 formattedDisplay.length <= 5 -> 100.sp
                 formattedDisplay.length == 6 -> 90.sp
@@ -235,6 +256,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                 Text(text = clearLabel, color = fg, fontSize = 38.sp, fontWeight = FontWeight.Normal)
             }
 
+            // Bold +/- button
             UniversalIosButton(
                 defaultBg = ColorLightGray,
                 pressedBg = ColorLightGrayPressed,
@@ -245,9 +267,10 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                     vm.onToggleSign()
                 }
             ) { fg ->
-                PlusMinusIcon(color = fg, fontSize = 36.sp)
+                PlusMinusIcon(color = fg, fontSize = 36.sp, isBold = true)
             }
 
+            // Bold % button
             UniversalIosButton(
                 defaultBg = ColorLightGray,
                 pressedBg = ColorLightGrayPressed,
@@ -258,7 +281,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                     vm.onPercent()
                 }
             ) { fg ->
-                Text(text = "%", color = fg, fontSize = 38.sp, fontWeight = FontWeight.Normal)
+                Text(text = "%", color = fg, fontSize = 38.sp, fontWeight = FontWeight.Bold)
             }
 
             UniversalIosButton(
@@ -456,6 +479,7 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
     val activeOperator by vm.activeOperator.collectAsState()
     val isRadMode by vm.isRadMode.collectAsState()
     val is2nd by vm.is2nd.collectAsState()
+    val hasMemory by vm.hasMemory.collectAsState()
     val haptic = LocalHapticFeedback.current
 
     val clearLabel = if (displayValue != "0") "C" else "AC"
@@ -474,7 +498,6 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                 .weight(1f),
             contentAlignment = Alignment.BottomEnd
         ) {
-            // Little "Rad" indicator: ONLY appears when in Radian mode! (Hidden by default in Degrees)
             if (isRadMode) {
                 Text(
                     text = "Rad",
@@ -517,17 +540,25 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
             sciCols[0].forEachIndexed { i, label ->
                 val isOp = i == 9
                 val isTopLight = i in 6..8
+                val isMr = label == "mr"
+                val isMrActive = isMr && hasMemory
+                val isDivActive = isOp && activeOperator == "÷"
+                val isActive = isDivActive || isMrActive
+
                 val defaultBg = if (isOp) ColorOrange else if (isTopLight) ColorLightGray else ColorSciGray
                 val pressedBg = if (isOp) ColorOrangePressed else if (isTopLight) ColorLightGrayPressed else ColorSciGrayPressed
                 val defaultFg = if (isTopLight) ColorBlack else ColorWhite
+
+                val activeBgColor = if (isOp) ColorWhite else ColorSciActiveBg
+                val activeFgColor = if (isOp) ColorOrange else ColorSciActiveFg
 
                 UniversalIosButton(
                     defaultBg = defaultBg,
                     pressedBg = pressedBg,
                     defaultFg = defaultFg,
-                    activeBg = ColorWhite,
-                    activeFg = ColorOrange,
-                    isActive = isOp && activeOperator == "÷",
+                    activeBg = activeBgColor,
+                    activeFg = activeFgColor,
+                    isActive = isActive,
                     modifier = Modifier.weight(1f).height(48.dp),
                     onClick = {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -541,13 +572,13 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                     }
                 ) { fg ->
                     if (label == "±") {
-                        PlusMinusIcon(color = fg, fontSize = 24.sp)
+                        PlusMinusIcon(color = fg, fontSize = 24.sp, isBold = true)
                     } else {
                         Text(
                             text = label,
                             color = fg,
                             fontSize = if (isOp) 34.sp else if (isTopLight) 22.sp else 19.sp,
-                            fontWeight = FontWeight.Normal
+                            fontWeight = if (label == "%" || label == "±") FontWeight.Bold else FontWeight.Normal
                         )
                     }
                 }
@@ -567,7 +598,6 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                 val defaultBg = if (isOp) ColorOrange else if (isDigit) ColorDarkGray else ColorSciGray
                 val pressedBg = if (isOp) ColorOrangePressed else if (isDigit) ColorDarkGrayPressed else ColorSciGrayPressed
 
-                // Light gray background with black text for scientific active; White with orange text for arithmetic
                 val activeBgColor = if (isPowerOp || is2ndBtn) ColorSciActiveBg else ColorWhite
                 val activeFgColor = if (isPowerOp || is2ndBtn) ColorSciActiveFg else ColorOrange
 
@@ -742,7 +772,7 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                 defaultBg = ColorDarkGray,
                 pressedBg = ColorDarkGrayPressed,
                 defaultFg = ColorWhite,
-                modifier = Modifier.weight(1f).height(48.dp),
+                modifier = Modifier.weight(1f).aspectRatio(1f),
                 onClick = {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     vm.onDecimal()
