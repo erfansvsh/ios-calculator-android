@@ -8,7 +8,6 @@ import androidx.activity.viewModels
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -72,7 +71,7 @@ class MainActivity : ComponentActivity() {
 
 /**
  * Universal iOS button component providing authentic Apple breath-like animation:
- * Smooth touch-down (80ms), followed by a soft, slower lingering breath-like fade out (380ms) on release.
+ * Immediate touch-down (80ms), followed by a soft, slower lingering breath-like fade out (380ms) on release.
  */
 @Composable
 fun UniversalIosButton(
@@ -103,31 +102,23 @@ fun UniversalIosButton(
 
     // Authentic Apple breath-like color transition:
     // Immediate soft touch-down, followed by an elegant, slower fade out on finger lift
-    val bgAnimSpec = remember(isPressed, isActive) {
-        when {
-            isActive -> tween<Color>(durationMillis = 200, easing = LinearOutSlowInEasing)
-            isPressed -> tween<Color>(durationMillis = 80, easing = LinearEasing)
-            else -> tween<Color>(durationMillis = 380, easing = FastOutSlowInEasing)
-        }
-    }
-
-    val fgAnimSpec = remember(isPressed, isActive) {
-        when {
-            isActive -> tween<Color>(durationMillis = 200, easing = LinearOutSlowInEasing)
-            isPressed -> tween<Color>(durationMillis = 80, easing = LinearEasing)
-            else -> tween<Color>(durationMillis = 350, easing = FastOutSlowInEasing)
-        }
-    }
-
     val animatedBg by animateColorAsState(
         targetValue = targetBg,
-        animationSpec = bgAnimSpec,
+        animationSpec = if (isPressed) {
+            tween(durationMillis = 80, easing = LinearEasing)
+        } else {
+            tween(durationMillis = 380, easing = FastOutSlowInEasing)
+        },
         label = "iosBtnBg"
     )
 
     val animatedFg by animateColorAsState(
         targetValue = targetFg,
-        animationSpec = fgAnimSpec,
+        animationSpec = if (isPressed) {
+            tween(durationMillis = 80, easing = LinearEasing)
+        } else {
+            tween(durationMillis = 350, easing = FastOutSlowInEasing)
+        },
         label = "iosBtnFg"
     )
 
@@ -163,7 +154,7 @@ fun PlusMinusIcon(
                 text = "+",
                 color = color,
                 fontSize = fontSize * 0.65f,
-                fontWeight = if (isBold) FontWeight.ExtraBold else FontWeight.Bold,
+                fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal,
                 modifier = Modifier.offset(y = (-5).dp, x = 1.dp)
             )
             Text(
@@ -177,7 +168,7 @@ fun PlusMinusIcon(
                 text = "−",
                 color = color,
                 fontSize = fontSize * 0.7f,
-                fontWeight = if (isBold) FontWeight.ExtraBold else FontWeight.Bold,
+                fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal,
                 modifier = Modifier.offset(y = 5.dp, x = (-1).dp)
             )
         }
@@ -425,7 +416,6 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Pill zero with optical offset alignment under column 1
             UniversalIosButton(
                 defaultBg = ColorDarkGray,
                 pressedBg = ColorDarkGrayPressed,
@@ -479,8 +469,10 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
     val activeOperator by vm.activeOperator.collectAsState()
     val isRadMode by vm.isRadMode.collectAsState()
     val is2nd by vm.is2nd.collectAsState()
-    val hasMemory by vm.hasMemory.collectAsState()
     val haptic = LocalHapticFeedback.current
+
+    // Local state for mr active selection (works independently of ViewModel version)
+    var hasMemory by remember { mutableStateOf(false) }
 
     val clearLabel = if (displayValue != "0") "C" else "AC"
     val formattedDisplay = vm.getFormattedDisplay(isLandscape = true)
@@ -567,6 +559,14 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                             "±" -> vm.onToggleSign()
                             "%" -> vm.onPercent()
                             "÷" -> vm.onOperator("÷")
+                            "mc" -> {
+                                hasMemory = false
+                                vm.onScientific(label)
+                            }
+                            "m+", "m-" -> {
+                                hasMemory = true
+                                vm.onScientific(label)
+                            }
                             else -> vm.onScientific(label)
                         }
                     }
@@ -785,7 +785,7 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                 defaultBg = ColorOrange,
                 pressedBg = ColorOrangePressed,
                 defaultFg = ColorWhite,
-                modifier = Modifier.weight(1f).height(48.dp),
+                modifier = Modifier.weight(1f).aspectRatio(1f),
                 onClick = {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     vm.onEquals()
