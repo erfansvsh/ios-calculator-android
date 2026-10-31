@@ -39,16 +39,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import java.math.BigDecimal
+import java.math.MathContext
+import java.math.RoundingMode
+import java.util.Locale
 import kotlin.math.*
 
 // =========================================================================
 // BUTTON ANIMATION TIMING CONFIGURATION (TUNABLE HERE)
 // =========================================================================
-// Attack: instantaneous touch-down response in milliseconds (default: 80ms)
+// Attack: touch-down response in milliseconds (default: 80ms)
 const val BUTTON_PRESS_DOWN_MS = 80
 
 // Release: soft, breath-like lingering color decay in milliseconds (default: 480ms)
-// Increase (e.g., 500, 520, 560) for an even slower fade, or decrease (e.g., 400, 350) for faster.
+// Increase (e.g. 520, 560) for a slower fade, or decrease (e.g. 400, 360) for faster.
 const val BUTTON_RELEASE_FADE_MS = 480
 
 // =========================================================================
@@ -82,7 +86,7 @@ val ColorSciActiveBg = Color(0xFF808080)
 val ColorSciActiveFg = Color(0xFFFFFFFF)
 
 /**
- * Loads authentic Apple San Francisco (SF Pro) font from assets,
+ * Loads Apple San Francisco (SF Pro) font from assets,
  * falling back gracefully to FontFamily.SansSerif if the asset is missing.
  */
 @Composable
@@ -203,12 +207,15 @@ fun UniversalIosButton(
     }
 }
 
+/**
+ * Authentic iOS +/- icon matching real iPhone screenshot:
+ * Bold raised +, centered slash, bold lowered −.
+ */
 @Composable
 fun PlusMinusIcon(
     color: Color,
     modifier: Modifier = Modifier,
-    fontFamily: FontFamily,
-    fontSize: TextUnit = 36.sp
+    fontFamily: FontFamily
 ) {
     Box(
         modifier = modifier,
@@ -222,15 +229,15 @@ fun PlusMinusIcon(
                 text = "+",
                 color = color,
                 fontFamily = fontFamily,
-                fontSize = fontSize * 0.62f,
-                fontWeight = FontWeight.Normal,
+                fontSize = 25.sp,
+                fontWeight = FontWeight.Bold,
                 modifier = Modifier.offset(y = (-5).dp, x = 1.dp)
             )
             Text(
                 text = "/",
                 color = color,
                 fontFamily = fontFamily,
-                fontSize = fontSize * 0.85f,
+                fontSize = 32.sp,
                 fontWeight = FontWeight.Normal,
                 modifier = Modifier.offset(y = (-1).dp)
             )
@@ -238,9 +245,9 @@ fun PlusMinusIcon(
                 text = "−",
                 color = color,
                 fontFamily = fontFamily,
-                fontSize = fontSize * 0.72f,
-                fontWeight = FontWeight.Normal,
-                modifier = Modifier.offset(y = (4).dp, x = (-1).dp)
+                fontSize = 25.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.offset(y = 5.dp, x = (-1).dp)
             )
         }
     }
@@ -308,7 +315,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Row 1: AC/C, +/-, %, ÷
+        // Row 1: AC/C, +/-, %, ÷ (Generous iOS button typography)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -323,10 +330,10 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                     vm.onClear()
                 }
             ) { fg ->
-                Text(text = clearLabel, color = fg, fontFamily = sfTextRegular, fontSize = 35.sp, fontWeight = FontWeight.Normal)
+                Text(text = clearLabel, color = fg, fontFamily = sfTextRegular, fontSize = 38.sp, fontWeight = FontWeight.Normal)
             }
 
-            // Authentic iOS +/- icon
+            // Bold, balanced iOS +/- button
             UniversalIosButton(
                 defaultBg = ColorLightGray,
                 pressedBg = ColorLightGrayPressed,
@@ -337,10 +344,10 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                     vm.onToggleSign()
                 }
             ) { fg ->
-                PlusMinusIcon(color = fg, fontFamily = sfTextRegular, fontSize = 36.sp)
+                PlusMinusIcon(color = fg, fontFamily = sfTextRegular)
             }
 
-            // Authentic iOS % button with SF Pro glyph
+            // Bold, prominent iOS % button matching iOS.PNG
             UniversalIosButton(
                 defaultBg = ColorLightGray,
                 pressedBg = ColorLightGrayPressed,
@@ -351,7 +358,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                     vm.onPercent()
                 }
             ) { fg ->
-                Text(text = "%", color = fg, fontFamily = sfTextRegular, fontSize = 35.sp, fontWeight = FontWeight.Normal)
+                Text(text = "%", color = fg, fontFamily = sfTextRegular, fontSize = 38.sp, fontWeight = FontWeight.Bold)
             }
 
             UniversalIosButton(
@@ -367,13 +374,13 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                     vm.onOperator("÷")
                 }
             ) { fg ->
-                Text(text = "÷", color = fg, fontFamily = sfTextRegular, fontSize = 44.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-3).dp))
+                Text(text = "÷", color = fg, fontFamily = sfTextRegular, fontSize = 48.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-3).dp))
             }
         }
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Row 2: 7, 8, 9, ×
+        // Row 2: 7, 8, 9, × (Large, confident digits matching iOS.PNG)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -389,7 +396,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                         vm.onDigit(digit)
                     }
                 ) { fg ->
-                    Text(text = digit, color = fg, fontFamily = sfTextRegular, fontSize = 40.sp, fontWeight = FontWeight.Normal)
+                    Text(text = digit, color = fg, fontFamily = sfTextRegular, fontSize = 46.sp, fontWeight = FontWeight.Normal)
                 }
             }
 
@@ -406,7 +413,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                     vm.onOperator("×")
                 }
             ) { fg ->
-                Text(text = "×", color = fg, fontFamily = sfTextRegular, fontSize = 44.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-3).dp))
+                Text(text = "×", color = fg, fontFamily = sfTextRegular, fontSize = 44.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-2).dp))
             }
         }
 
@@ -428,7 +435,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                         vm.onDigit(digit)
                     }
                 ) { fg ->
-                    Text(text = digit, color = fg, fontFamily = sfTextRegular, fontSize = 40.sp, fontWeight = FontWeight.Normal)
+                    Text(text = digit, color = fg, fontFamily = sfTextRegular, fontSize = 46.sp, fontWeight = FontWeight.Normal)
                 }
             }
 
@@ -445,7 +452,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                     vm.onOperator("−")
                 }
             ) { fg ->
-                Text(text = "−", color = fg, fontFamily = sfTextRegular, fontSize = 44.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-2).dp))
+                Text(text = "−", color = fg, fontFamily = sfTextRegular, fontSize = 48.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-2).dp))
             }
         }
 
@@ -467,7 +474,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                         vm.onDigit(digit)
                     }
                 ) { fg ->
-                    Text(text = digit, color = fg, fontFamily = sfTextRegular, fontSize = 40.sp, fontWeight = FontWeight.Normal)
+                    Text(text = digit, color = fg, fontFamily = sfTextRegular, fontSize = 46.sp, fontWeight = FontWeight.Normal)
                 }
             }
 
@@ -484,7 +491,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                     vm.onOperator("+")
                 }
             ) { fg ->
-                Text(text = "+", color = fg, fontFamily = sfTextRegular, fontSize = 44.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-2).dp))
+                Text(text = "+", color = fg, fontFamily = sfTextRegular, fontSize = 46.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-2).dp))
             }
         }
 
@@ -515,7 +522,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                             .fillMaxHeight(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(text = "0", color = fg, fontFamily = sfTextRegular, fontSize = 40.sp, fontWeight = FontWeight.Normal)
+                        Text(text = "0", color = fg, fontFamily = sfTextRegular, fontSize = 46.sp, fontWeight = FontWeight.Normal)
                     }
                     Spacer(modifier = Modifier.width(12.dp))
                     Spacer(modifier = Modifier.weight(1f))
@@ -532,7 +539,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                     vm.onDecimal()
                 }
             ) { fg ->
-                Text(text = ".", color = fg, fontFamily = sfTextRegular, fontSize = 40.sp, fontWeight = FontWeight.Bold, modifier = Modifier.offset(y = (-4).dp))
+                Text(text = ".", color = fg, fontFamily = sfTextRegular, fontSize = 46.sp, fontWeight = FontWeight.Bold, modifier = Modifier.offset(y = (-4).dp))
             }
 
             UniversalIosButton(
@@ -545,7 +552,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                     vm.onEquals()
                 }
             ) { fg ->
-                Text(text = "=", color = fg, fontFamily = sfTextRegular, fontSize = 44.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-2).dp))
+                Text(text = "=", color = fg, fontFamily = sfTextRegular, fontSize = 46.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-2).dp))
             }
         }
     }
@@ -675,14 +682,14 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                     }
                 ) { fg ->
                     if (label == "±") {
-                        PlusMinusIcon(color = fg, fontFamily = sfTextRegular, fontSize = 24.sp)
+                        PlusMinusIcon(color = fg, fontFamily = sfTextRegular)
                     } else {
                         Text(
                             text = label,
                             color = fg,
                             fontFamily = sfTextRegular,
                             fontSize = if (isOp) 34.sp else if (isTopLight) 22.sp else 19.sp,
-                            fontWeight = FontWeight.Normal
+                            fontWeight = if (label == "%") FontWeight.Bold else FontWeight.Normal
                         )
                     }
                 }
@@ -919,49 +926,96 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
 }
 
 /**
- * Format portrait display to match iOS 9-digit max display with commas.
+ * Format portrait display to strictly enforce iOS 9-digit max display with HALF_UP rounding and commas.
+ * For example: π × 7 evaluates to 21.9911486 (9 significant digits) in portrait mode.
  */
 fun formatPortraitDisplay(value: String): String {
     if (value == "Error") return "Error"
     if (value.contains("e") || value.contains("E")) return value
 
-    val parts = value.split(".")
-    val integerPart = parts[0]
-    val isNegative = integerPart.startsWith("-")
-    val cleanInt = if (isNegative) integerPart.substring(1) else integerPart
+    val num = value.toDoubleOrNull() ?: return value
+    if (num == 0.0) return if (value.startsWith("-")) "-0" else "0"
 
-    val formattedInt = cleanInt.reversed().chunked(3).joinToString(",").reversed()
-    val signedInt = if (isNegative) "-$formattedInt" else formattedInt
+    // While user is actively typing a decimal or trailing zeros e.g. "3." or "3.0"
+    if (value.endsWith(".") || (value.contains(".") && value.endsWith("0"))) {
+        val parts = value.split(".")
+        val isNeg = parts[0].startsWith("-")
+        val cleanInt = if (isNeg) parts[0].substring(1) else parts[0]
+        val formattedInt = cleanInt.reversed().chunked(3).joinToString(",").reversed()
+        val signedInt = if (isNeg) "-$formattedInt" else formattedInt
+        return "$signedInt.${parts[1]}"
+    }
 
-    return if (parts.size > 1) {
-        "$signedInt.${parts[1]}"
-    } else if (value.endsWith(".")) {
-        "$signedInt."
-    } else {
-        signedInt
+    return try {
+        val absNum = abs(num)
+        if (absNum >= 1e9 || (absNum < 1e-8 && absNum > 0.0)) {
+            // Numbers exceeding 9 digits switch to scientific notation
+            val expStr = String.format(Locale.US, "%.5e", num)
+            expStr.replace("+", "").replace("e0", "e").replace("e-0", "e-")
+        } else {
+            // Exactly 9 significant digits with HALF_UP rounding (iOS portrait precision)
+            val mc = MathContext(9, RoundingMode.HALF_UP)
+            val bd = BigDecimal(value, mc)
+            val plain = bd.stripTrailingZeros().toPlainString()
+            val parts = plain.split(".")
+            val isNeg = parts[0].startsWith("-")
+            val cleanInt = if (isNeg) parts[0].substring(1) else parts[0]
+            val formattedInt = cleanInt.reversed().chunked(3).joinToString(",").reversed()
+            val signedInt = if (isNeg) "-$formattedInt" else formattedInt
+            if (parts.size > 1) "$signedInt.${parts[1]}" else signedInt
+        }
+    } catch (e: Exception) {
+        val parts = value.split(".")
+        val isNeg = parts[0].startsWith("-")
+        val cleanInt = if (isNeg) parts[0].substring(1) else parts[0]
+        val formattedInt = cleanInt.reversed().chunked(3).joinToString(",").reversed()
+        val signedInt = if (isNeg) "-$formattedInt" else formattedInt
+        if (parts.size > 1) "$signedInt.${parts[1]}" else signedInt
     }
 }
 
 /**
  * Format landscape display to allow up to 16 digits of precision with commas.
+ * For example: π × 7 evaluates to 21.99114857512855 (16 significant digits) in landscape mode.
  */
 fun formatLandscapeDisplay(value: String): String {
     if (value == "Error") return "Error"
     if (value.contains("e") || value.contains("E")) return value
 
-    val parts = value.split(".")
-    val integerPart = parts[0]
-    val isNegative = integerPart.startsWith("-")
-    val cleanInt = if (isNegative) integerPart.substring(1) else integerPart
+    val num = value.toDoubleOrNull() ?: return value
+    if (num == 0.0) return if (value.startsWith("-")) "-0" else "0"
 
-    val formattedInt = cleanInt.reversed().chunked(3).joinToString(",").reversed()
-    val signedInt = if (isNegative) "-$formattedInt" else formattedInt
+    if (value.endsWith(".") || (value.contains(".") && value.endsWith("0"))) {
+        val parts = value.split(".")
+        val isNeg = parts[0].startsWith("-")
+        val cleanInt = if (isNeg) parts[0].substring(1) else parts[0]
+        val formattedInt = cleanInt.reversed().chunked(3).joinToString(",").reversed()
+        val signedInt = if (isNeg) "-$formattedInt" else formattedInt
+        return "$signedInt.${parts[1]}"
+    }
 
-    return if (parts.size > 1) {
-        "$signedInt.${parts[1]}"
-    } else if (value.endsWith(".")) {
-        "$signedInt."
-    } else {
-        signedInt
+    return try {
+        val absNum = abs(num)
+        if (absNum >= 1e16 || (absNum < 1e-8 && absNum > 0.0)) {
+            val expStr = String.format(Locale.US, "%.10e", num)
+            expStr.replace("+", "").replace("e0", "e").replace("e-0", "e-")
+        } else {
+            val mc = MathContext(16, RoundingMode.HALF_UP)
+            val bd = BigDecimal(value, mc)
+            val plain = bd.stripTrailingZeros().toPlainString()
+            val parts = plain.split(".")
+            val isNeg = parts[0].startsWith("-")
+            val cleanInt = if (isNeg) parts[0].substring(1) else parts[0]
+            val formattedInt = cleanInt.reversed().chunked(3).joinToString(",").reversed()
+            val signedInt = if (isNeg) "-$formattedInt" else formattedInt
+            if (parts.size > 1) "$signedInt.${parts[1]}" else signedInt
+        }
+    } catch (e: Exception) {
+        val parts = value.split(".")
+        val isNeg = parts[0].startsWith("-")
+        val cleanInt = if (isNeg) parts[0].substring(1) else parts[0]
+        val formattedInt = cleanInt.reversed().chunked(3).joinToString(",").reversed()
+        val signedInt = if (isNeg) "-$formattedInt" else formattedInt
+        if (parts.size > 1) "$signedInt.${parts[1]}" else signedInt
     }
 }
