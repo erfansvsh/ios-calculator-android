@@ -2,6 +2,7 @@ package com.erfansvsh.ioscalculator
 
 import android.content.res.Configuration
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -30,7 +31,19 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import kotlin.math.*
+
+// =========================================================================
+// BUTTON ANIMATION TIMING CONFIGURATION (TUNABLE HERE)
+// =========================================================================
+// Attack: instantaneous touch-down response in milliseconds (default: 80ms)
+const val BUTTON_PRESS_DOWN_MS = 80
+
+// Release: soft, breath-like lingering color decay in milliseconds (default: 480ms)
+// Increase (e.g., 500, 520, 560) for an even slower fade, or decrease (e.g., 400, 350) for faster.
+const val BUTTON_RELEASE_FADE_MS = 480
 
 // Exact iOS Calculator Colors
 val ColorBlack = Color(0xFF000000)
@@ -51,6 +64,16 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Make sure the app is NOT displayed fullscreen - status bar and navigation bar visible like a regular app
+        window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+        WindowCompat.setDecorFitsSystemWindows(window, true)
+        val insetsController = WindowCompat.getInsetsController(window, window.decorView)
+        insetsController.show(WindowInsetsCompat.Type.systemBars())
+        insetsController.isAppearanceLightStatusBars = false // Crisp white system icons (clock, signal, battery) on black
+        window.statusBarColor = android.graphics.Color.BLACK
+        window.navigationBarColor = android.graphics.Color.BLACK
+
         setContent {
             val configuration = LocalConfiguration.current
             val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
@@ -71,7 +94,7 @@ class MainActivity : ComponentActivity() {
 
 /**
  * Universal iOS button component providing authentic Apple breath-like animation:
- * Immediate touch-down (80ms), followed by a soft, slower lingering breath-like fade out (380ms) on release.
+ * Immediate touch-down (BUTTON_PRESS_DOWN_MS), followed by a soft, slower lingering breath-like fade out (BUTTON_RELEASE_FADE_MS) on release.
  */
 @Composable
 fun UniversalIosButton(
@@ -105,9 +128,9 @@ fun UniversalIosButton(
     val animatedBg by animateColorAsState(
         targetValue = targetBg,
         animationSpec = if (isPressed) {
-            tween(durationMillis = 80, easing = LinearEasing)
+            tween(durationMillis = BUTTON_PRESS_DOWN_MS, easing = LinearEasing)
         } else {
-            tween(durationMillis = 380, easing = FastOutSlowInEasing)
+            tween(durationMillis = BUTTON_RELEASE_FADE_MS, easing = FastOutSlowInEasing)
         },
         label = "iosBtnBg"
     )
@@ -115,9 +138,9 @@ fun UniversalIosButton(
     val animatedFg by animateColorAsState(
         targetValue = targetFg,
         animationSpec = if (isPressed) {
-            tween(durationMillis = 80, easing = LinearEasing)
+            tween(durationMillis = BUTTON_PRESS_DOWN_MS, easing = LinearEasing)
         } else {
-            tween(durationMillis = 350, easing = FastOutSlowInEasing)
+            tween(durationMillis = BUTTON_RELEASE_FADE_MS, easing = FastOutSlowInEasing)
         },
         label = "iosBtnFg"
     )
@@ -160,16 +183,16 @@ fun PlusMinusIcon(
             Text(
                 text = "/",
                 color = color,
-                fontSize = fontSize,
-                fontWeight = if (isBold) FontWeight.Bold else FontWeight.Light,
-                modifier = Modifier.padding(horizontal = 0.5.dp)
+                fontSize = fontSize * 0.9f,
+                fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal,
+                modifier = Modifier.offset(y = (-1).dp)
             )
             Text(
                 text = "−",
                 color = color,
-                fontSize = fontSize * 0.7f,
+                fontSize = fontSize * 0.75f,
                 fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal,
-                modifier = Modifier.offset(y = 5.dp, x = (-1).dp)
+                modifier = Modifier.offset(y = (4).dp, x = (-1).dp)
             )
         }
     }
@@ -182,12 +205,14 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
     val haptic = LocalHapticFeedback.current
 
     val clearLabel = if (displayValue != "0") "C" else "AC"
-    val formattedDisplay = vm.getFormattedDisplay(isLandscape = false)
+    val formattedDisplay = formatPortraitDisplay(displayValue)
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 14.dp, vertical = 20.dp),
+            .statusBarsPadding()
+            .navigationBarsPadding()
+            .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.Bottom
     ) {
         // Display with swipe to delete
@@ -288,7 +313,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                     vm.onOperator("÷")
                 }
             ) { fg ->
-                Text(text = "÷", color = fg, fontSize = 50.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-1).dp))
+                Text(text = "÷", color = fg, fontSize = 48.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-3).dp))
             }
         }
 
@@ -310,7 +335,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                         vm.onDigit(digit)
                     }
                 ) { fg ->
-                    Text(text = digit, color = fg, fontSize = 46.sp, fontWeight = FontWeight.Normal)
+                    Text(text = digit, color = fg, fontSize = 42.sp, fontWeight = FontWeight.Normal)
                 }
             }
 
@@ -327,7 +352,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                     vm.onOperator("×")
                 }
             ) { fg ->
-                Text(text = "×", color = fg, fontSize = 50.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-1).dp))
+                Text(text = "×", color = fg, fontSize = 48.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-3).dp))
             }
         }
 
@@ -349,7 +374,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                         vm.onDigit(digit)
                     }
                 ) { fg ->
-                    Text(text = digit, color = fg, fontSize = 46.sp, fontWeight = FontWeight.Normal)
+                    Text(text = digit, color = fg, fontSize = 42.sp, fontWeight = FontWeight.Normal)
                 }
             }
 
@@ -366,7 +391,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                     vm.onOperator("−")
                 }
             ) { fg ->
-                Text(text = "−", color = fg, fontSize = 50.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-1).dp))
+                Text(text = "−", color = fg, fontSize = 48.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-2).dp))
             }
         }
 
@@ -388,7 +413,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                         vm.onDigit(digit)
                     }
                 ) { fg ->
-                    Text(text = digit, color = fg, fontSize = 46.sp, fontWeight = FontWeight.Normal)
+                    Text(text = digit, color = fg, fontSize = 42.sp, fontWeight = FontWeight.Normal)
                 }
             }
 
@@ -405,32 +430,37 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                     vm.onOperator("+")
                 }
             ) { fg ->
-                Text(text = "+", color = fg, fontSize = 50.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-1).dp))
+                Text(text = "+", color = fg, fontSize = 48.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-2).dp))
             }
         }
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Row 5: 0 (double pill width), ., =
+        // Row 5: 0 (spanning 2 columns), ., =
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            // '0' button spanning 2 columns with pill shape
             UniversalIosButton(
                 defaultBg = ColorDarkGray,
                 pressedBg = ColorDarkGrayPressed,
                 defaultFg = ColorWhite,
-                modifier = Modifier.weight(2f).aspectRatio(2.14f),
+                modifier = Modifier
+                    .weight(2f)
+                    .aspectRatio(2.15f),
                 onClick = {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     vm.onDigit("0")
                 }
             ) { fg ->
                 Box(
-                    modifier = Modifier.fillMaxSize().padding(start = 30.dp),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(start = 28.dp),
                     contentAlignment = Alignment.CenterStart
                 ) {
-                    Text(text = "0", color = fg, fontSize = 46.sp, fontWeight = FontWeight.Normal)
+                    Text(text = "0", color = fg, fontSize = 42.sp, fontWeight = FontWeight.Normal)
                 }
             }
 
@@ -444,7 +474,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                     vm.onDecimal()
                 }
             ) { fg ->
-                Text(text = ".", color = fg, fontSize = 46.sp, fontWeight = FontWeight.Bold, modifier = Modifier.offset(y = (-4).dp))
+                Text(text = ".", color = fg, fontSize = 42.sp, fontWeight = FontWeight.Bold, modifier = Modifier.offset(y = (-4).dp))
             }
 
             UniversalIosButton(
@@ -457,7 +487,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                     vm.onEquals()
                 }
             ) { fg ->
-                Text(text = "=", color = fg, fontSize = 50.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-1).dp))
+                Text(text = "=", color = fg, fontSize = 48.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-2).dp))
             }
         }
     }
@@ -467,35 +497,43 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
 fun LandscapeCalculator(vm: CalculatorViewModel) {
     val displayValue by vm.displayValue.collectAsState()
     val activeOperator by vm.activeOperator.collectAsState()
-    val isRadMode by vm.isRadMode.collectAsState()
+    val isRadMode by vm.isRad.collectAsState()
     val is2nd by vm.is2nd.collectAsState()
     val haptic = LocalHapticFeedback.current
 
-    // Local state for mr active selection (works independently of ViewModel version)
+    // Local memory presence state for 'mr' highlight: active on m+/m-, cleared on mc
     var hasMemory by remember { mutableStateOf(false) }
 
     val clearLabel = if (displayValue != "0") "C" else "AC"
-    val formattedDisplay = vm.getFormattedDisplay(isLandscape = true)
+    val formattedDisplay = formatLandscapeDisplay(displayValue)
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(8.dp),
-        verticalArrangement = Arrangement.Bottom
+            .statusBarsPadding()
+            .navigationBarsPadding()
+            .padding(horizontal = 16.dp, vertical = 6.dp)
     ) {
-        // Display
+        // Landscape Display with Rad/Deg indicator
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f),
+                .weight(1f)
+                .pointerInput(Unit) {
+                    detectHorizontalDragGestures { _, dragAmount ->
+                        if (abs(dragAmount) > 20) {
+                            vm.onBackspace()
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        }
+                    }
+                },
             contentAlignment = Alignment.BottomEnd
         ) {
             if (isRadMode) {
                 Text(
                     text = "Rad",
-                    color = Color.LightGray,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Normal,
+                    color = ColorLightGray,
+                    fontSize = 14.sp,
                     modifier = Modifier
                         .align(Alignment.BottomStart)
                         .padding(start = 12.dp, bottom = 4.dp)
@@ -718,6 +756,7 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
         Spacer(modifier = Modifier.height(5.dp))
 
         // Row 5: 6 sci buttons, 0 (double width), ., =
+        // Unified styling: every single button shares height(48.dp) with consistent landscape capsule shape
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             // Rad/Deg button
             UniversalIosButton(
@@ -768,11 +807,12 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                 Text(text = "0", color = fg, fontSize = 30.sp, fontWeight = FontWeight.Normal)
             }
 
+            // Decimal button: Unified with landscape row matching height 48.dp
             UniversalIosButton(
                 defaultBg = ColorDarkGray,
                 pressedBg = ColorDarkGrayPressed,
                 defaultFg = ColorWhite,
-                modifier = Modifier.weight(1f).aspectRatio(1f),
+                modifier = Modifier.weight(1f).height(48.dp),
                 onClick = {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     vm.onDecimal()
@@ -781,11 +821,12 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                 Text(text = ".", color = fg, fontSize = 30.sp, fontWeight = FontWeight.Bold, modifier = Modifier.offset(y = (-2).dp))
             }
 
+            // Equals button: Unified with landscape row matching height 48.dp
             UniversalIosButton(
                 defaultBg = ColorOrange,
                 pressedBg = ColorOrangePressed,
                 defaultFg = ColorWhite,
-                modifier = Modifier.weight(1f).aspectRatio(1f),
+                modifier = Modifier.weight(1f).height(48.dp),
                 onClick = {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     vm.onEquals()
@@ -794,5 +835,53 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                 Text(text = "=", color = fg, fontSize = 34.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-1).dp))
             }
         }
+    }
+}
+
+/**
+ * Format portrait display to match iOS 9-digit max display with commas.
+ */
+fun formatPortraitDisplay(value: String): String {
+    if (value == "Error") return "Error"
+    if (value.contains("e") || value.contains("E")) return value
+
+    val parts = value.split(".")
+    val integerPart = parts[0]
+    val isNegative = integerPart.startsWith("-")
+    val cleanInt = if (isNegative) integerPart.substring(1) else integerPart
+
+    val formattedInt = cleanInt.reversed().chunked(3).joinToString(",").reversed()
+    val signedInt = if (isNegative) "-$formattedInt" else formattedInt
+
+    return if (parts.size > 1) {
+        "$signedInt.${parts[1]}"
+    } else if (value.endsWith(".")) {
+        "$signedInt."
+    } else {
+        signedInt
+    }
+}
+
+/**
+ * Format landscape display to allow up to 16 digits of precision with commas.
+ */
+fun formatLandscapeDisplay(value: String): String {
+    if (value == "Error") return "Error"
+    if (value.contains("e") || value.contains("E")) return value
+
+    val parts = value.split(".")
+    val integerPart = parts[0]
+    val isNegative = integerPart.startsWith("-")
+    val cleanInt = if (isNegative) integerPart.substring(1) else integerPart
+
+    val formattedInt = cleanInt.reversed().chunked(3).joinToString(",").reversed()
+    val signedInt = if (isNegative) "-$formattedInt" else formattedInt
+
+    return if (parts.size > 1) {
+        "$signedInt.${parts[1]}"
+    } else if (value.endsWith(".")) {
+        "$signedInt."
+    } else {
+        signedInt
     }
 }
