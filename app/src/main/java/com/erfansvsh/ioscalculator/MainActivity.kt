@@ -45,19 +45,35 @@ const val BUTTON_PRESS_DOWN_MS = 80
 // Increase (e.g., 500, 520, 560) for an even slower fade, or decrease (e.g., 400, 350) for faster.
 const val BUTTON_RELEASE_FADE_MS = 480
 
-// Exact iOS Calculator Colors
+// =========================================================================
+// EXACT iOS CALCULATOR COLORS (EXTRACTED FROM REAL IPHONE)
+// =========================================================================
 val ColorBlack = Color(0xFF000000)
+val ColorWhite = Color(0xFFFFFFFF)
+
+// Number buttons
 val ColorDarkGray = Color(0xFF333333)
 val ColorDarkGrayPressed = Color(0xFF737373)
-val ColorLightGray = Color(0xFFA5A5A5)
+
+// The three top buttons: AC, +/-, %
+val ColorLightGray = Color(0xFFA6A6A6)
 val ColorLightGrayPressed = Color(0xFFD9D9D9)
+
+// The five operator buttons: ÷, ×, −, +, =
 val ColorOrange = Color(0xFFFF9F0A)
 val ColorOrangePressed = Color(0xFFFCC781)
-val ColorWhite = Color(0xFFFFFFFF)
+
+// Scientific math buttons
 val ColorSciGray = Color(0xFF212121)
-val ColorSciGrayPressed = Color(0xFF424242)
-val ColorSciActiveBg = Color(0xFFA5A5A5) // Light gray when scientific buttons are selected
-val ColorSciActiveFg = Color(0xFF000000) // Black text when scientific buttons are selected
+val ColorSciGrayPressed = Color(0xFF4D4D4D)
+
+// The 'mr' button while activated: #808080 with white text
+val ColorMrActiveBg = Color(0xFF808080)
+val ColorMrActiveFg = Color(0xFFFFFFFF)
+
+// Other active scientific toggle buttons (e.g., 2nd)
+val ColorSciActiveBg = Color(0xFF808080)
+val ColorSciActiveFg = Color(0xFFFFFFFF)
 
 class MainActivity : ComponentActivity() {
     private val viewModel: CalculatorViewModel by viewModels()
@@ -436,12 +452,12 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Row 5: 0 (spanning 2 columns), ., =
+        // Row 5: 0 (spanning 2 columns, exactly aligned horizontally with "1"), ., =
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // '0' button spanning 2 columns with pill shape
+            // '0' button spanning 2 columns: left section matches column 1 width exactly, centering '0' directly under '1'
             UniversalIosButton(
                 defaultBg = ColorDarkGray,
                 pressedBg = ColorDarkGrayPressed,
@@ -454,13 +470,17 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                     vm.onDigit("0")
                 }
             ) { fg ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(start = 28.dp),
-                    contentAlignment = Alignment.CenterStart
-                ) {
-                    Text(text = "0", color = fg, fontSize = 42.sp, fontWeight = FontWeight.Normal)
+                Row(modifier = Modifier.fillMaxSize()) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(text = "0", color = fg, fontSize = 42.sp, fontWeight = FontWeight.Normal)
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Spacer(modifier = Modifier.weight(1f))
                 }
             }
 
@@ -579,8 +599,9 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                 val pressedBg = if (isOp) ColorOrangePressed else if (isTopLight) ColorLightGrayPressed else ColorSciGrayPressed
                 val defaultFg = if (isTopLight) ColorBlack else ColorWhite
 
-                val activeBgColor = if (isOp) ColorWhite else ColorSciActiveBg
-                val activeFgColor = if (isOp) ColorOrange else ColorSciActiveFg
+                // Real iOS: when 'mr' is activated, it displays darker gray #808080 with white text
+                val activeBgColor = if (isMr) ColorMrActiveBg else if (isOp) ColorWhite else ColorSciActiveBg
+                val activeFgColor = if (isMr) ColorMrActiveFg else if (isOp) ColorOrange else ColorSciActiveFg
 
                 UniversalIosButton(
                     defaultBg = defaultBg,
@@ -755,7 +776,7 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
         }
         Spacer(modifier = Modifier.height(5.dp))
 
-        // Row 5: 6 sci buttons, 0 (double width), ., =
+        // Row 5: 6 sci buttons, 0 (double width aligned directly under "1"), ., =
         // Unified styling: every single button shares height(48.dp) with consistent landscape capsule shape
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             // Rad/Deg button
@@ -793,7 +814,7 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                 }
             }
 
-            // 0 spanning 2 weight
+            // 0 spanning 2 weight: left section matches column 7 width exactly, centering '0' directly under '1'
             UniversalIosButton(
                 defaultBg = ColorDarkGray,
                 pressedBg = ColorDarkGrayPressed,
@@ -804,7 +825,18 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                     vm.onDigit("0")
                 }
             ) { fg ->
-                Text(text = "0", color = fg, fontSize = 30.sp, fontWeight = FontWeight.Normal)
+                Row(modifier = Modifier.fillMaxSize()) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(text = "0", color = fg, fontSize = 30.sp, fontWeight = FontWeight.Normal)
+                    }
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.weight(1f))
+                }
             }
 
             // Decimal button: Unified with landscape row matching height 48.dp
