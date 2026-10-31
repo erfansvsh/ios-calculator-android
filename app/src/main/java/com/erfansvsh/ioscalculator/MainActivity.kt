@@ -53,11 +53,11 @@ import kotlin.math.*
 // =========================================================================
 // BUTTON ANIMATION TIMING CONFIGURATION (TUNABLE HERE)
 // =========================================================================
-// Attack: touch-down response in milliseconds (default: 80ms)
+// Attack: instantaneous touch-down response in milliseconds (default: 80ms)
 const val BUTTON_PRESS_DOWN_MS = 80
 
 // Release: soft, breath-like lingering color decay in milliseconds (default: 480ms)
-// Increase (e.g. 520, 560) for a slower fade, or decrease (e.g. 400, 360) for faster.
+// Increase (e.g., 500, 520, 560) for an even slower fade, or decrease (e.g., 400, 350) for faster.
 const val BUTTON_RELEASE_FADE_MS = 480
 
 // =========================================================================
@@ -82,16 +82,17 @@ val ColorOrangePressed = Color(0xFFFCC781)
 val ColorSciGray = Color(0xFF212121)
 val ColorSciGrayPressed = Color(0xFF4D4D4D)
 
-// The 'mr' button while activated: #808080 with white text
+// The 'mr' button while activated: #808080 with black text
 val ColorMrActiveBg = Color(0xFF808080)
-val ColorMrActiveFg = Color(0xFFFFFFFF)
+val ColorMrActiveFg = ColorBlack
+val ColorMrActivePressedBg = Color(0xFFA6A6A6)
 
 // Other active scientific toggle buttons (e.g., 2nd)
 val ColorSciActiveBg = Color(0xFF808080)
 val ColorSciActiveFg = Color(0xFFFFFFFF)
 
 /**
- * Loads Apple San Francisco (SF Pro) font from assets,
+ * Loads authentic Apple San Francisco (SF Pro) font from assets,
  * falling back gracefully to FontFamily.SansSerif if the asset is missing.
  */
 @Composable
@@ -156,6 +157,7 @@ fun UniversalIosButton(
     isActive: Boolean = false,
     activeBg: Color = ColorWhite,
     activeFg: Color = ColorOrange,
+    pressedActiveBg: Color? = null,
     shape: Shape = CircleShape,
     onClick: () -> Unit,
     content: @Composable (fg: Color) -> Unit
@@ -165,6 +167,7 @@ fun UniversalIosButton(
 
     // Always prioritize isPressed so EVERY button gives the identical tactile touch feedback
     val targetBg = when {
+        isPressed && isActive && pressedActiveBg != null -> pressedActiveBg
         isPressed -> pressedBg
         isActive -> activeBg
         else -> defaultBg
@@ -214,108 +217,68 @@ fun UniversalIosButton(
 
 /**
  * Pixel-perfect Apple iOS Calculator '+/-' glyph vector
- * Extracted directly from real iPhone image (public/assets/aistudio/plus-slash-minus_1f60594b.png).
- * Unified across both portrait and landscape modes.
+ * Created directly from SF Pro's '%' glyph geometry:
+ * Uses the exact same '/' (slash) diagonal from SF Pro's '%',
+ * and replaces the two circles ('0 0') of '%' with '+' and '−' of corresponding size.
+ * Matches the exact visual height of the 'AC' and '%' buttons.
  */
 @Composable
 fun IosPlusMinusGlyph(
     color: Color,
+    glyphHeight: androidx.compose.ui.unit.Dp = 29.dp,
     modifier: Modifier = Modifier
 ) {
-    Canvas(modifier = modifier) {
-        val s = min(size.width, size.height) / 2f
-        val strokeSlash = s * 0.074f
-        val strokeBars = s * 0.060f
+    Box(
+        modifier = modifier
+            .height(glyphHeight)
+            .width(glyphHeight * 1.12f),
+        contentAlignment = Alignment.Center
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val H = size.height
+            val strokeSlash = H * 0.088f
+            val strokeBars = H * 0.076f
 
-        // Central diagonal slash from bottom-left to top-right
-        drawLine(
-            color = color,
-            start = Offset(center.x - 0.235f * s, center.y + 0.295f * s),
-            end = Offset(center.x + 0.155f * s, center.y - 0.255f * s),
-            strokeWidth = strokeSlash,
-            cap = StrokeCap.Square
-        )
+            // Central diagonal slash from bottom-left to top-right (matching SF Pro %)
+            drawLine(
+                color = color,
+                start = Offset(center.x - 0.38f * H, center.y + 0.50f * H),
+                end = Offset(center.x + 0.28f * H, center.y - 0.50f * H),
+                strokeWidth = strokeSlash,
+                cap = StrokeCap.Square
+            )
 
-        // Bold '+' sign (top-left)
-        val plusCx = center.x - 0.255f * s
-        val plusCy = center.y - 0.128f * s
-        val plusHalf = (s * 0.215f) / 2f
-        drawLine(
-            color = color,
-            start = Offset(plusCx - plusHalf, plusCy),
-            end = Offset(plusCx + plusHalf, plusCy),
-            strokeWidth = strokeBars,
-            cap = StrokeCap.Square
-        )
-        drawLine(
-            color = color,
-            start = Offset(plusCx, plusCy - plusHalf),
-            end = Offset(plusCx, plusCy + plusHalf),
-            strokeWidth = strokeBars,
-            cap = StrokeCap.Square
-        )
+            // Top-left '+' sign (replacing top '0' of % with matching bounds)
+            val plusCx = center.x - 0.34f * H
+            val plusCy = center.y - 0.23f * H
+            val plusHalf = (H * 0.38f) / 2f
+            drawLine(
+                color = color,
+                start = Offset(plusCx - plusHalf, plusCy),
+                end = Offset(plusCx + plusHalf, plusCy),
+                strokeWidth = strokeBars,
+                cap = StrokeCap.Square
+            )
+            drawLine(
+                color = color,
+                start = Offset(plusCx, plusCy - plusHalf),
+                end = Offset(plusCx, plusCy + plusHalf),
+                strokeWidth = strokeBars,
+                cap = StrokeCap.Square
+            )
 
-        // Bold '−' sign (bottom-right)
-        val minusCx = center.x + 0.155f * s
-        val minusCy = center.y + 0.161f * s
-        val minusHalf = (s * 0.201f) / 2f
-        drawLine(
-            color = color,
-            start = Offset(minusCx - minusHalf, minusCy),
-            end = Offset(minusCx + minusHalf, minusCy),
-            strokeWidth = strokeBars,
-            cap = StrokeCap.Square
-        )
-    }
-}
-
-/**
- * Pixel-perfect Apple iOS Calculator '%' glyph vector
- * Extracted directly from real iPhone image (public/assets/aistudio/percent_1d923e38.png).
- * Unified across both portrait and landscape modes.
- */
-@Composable
-fun IosPercentGlyph(
-    color: Color,
-    modifier: Modifier = Modifier
-) {
-    Canvas(modifier = modifier) {
-        val s = min(size.width, size.height) / 2f
-        val strokeSlash = s * 0.074f
-        val strokeRing = s * 0.060f
-
-        // Central diagonal slash from bottom-left to top-right
-        drawLine(
-            color = color,
-            start = Offset(center.x - 0.235f * s, center.y + 0.289f * s),
-            end = Offset(center.x + 0.181f * s, center.y - 0.268f * s),
-            strokeWidth = strokeSlash,
-            cap = StrokeCap.Square
-        )
-
-        // Top ring (oval: rx = 0.121s, ry = 0.141s)
-        val topCx = center.x - 0.208f * s
-        val topCy = center.y - 0.134f * s
-        val topRx = s * 0.121f
-        val topRy = s * 0.141f
-        drawOval(
-            color = color,
-            topLeft = Offset(topCx - topRx, topCy - topRy),
-            size = Size(topRx * 2f, topRy * 2f),
-            style = Stroke(width = strokeRing)
-        )
-
-        // Bottom ring (oval: rx = 0.114s, ry = 0.134s)
-        val botCx = center.x + 0.188f * s
-        val botCy = center.y + 0.148f * s
-        val botRx = s * 0.114f
-        val botRy = s * 0.134f
-        drawOval(
-            color = color,
-            topLeft = Offset(botCx - botRx, botCy - botRy),
-            size = Size(botRx * 2f, botRy * 2f),
-            style = Stroke(width = strokeRing)
-        )
+            // Bottom-right '−' sign (replacing bottom '0' of % with matching bounds)
+            val minusCx = center.x + 0.30f * H
+            val minusCy = center.y + 0.26f * H
+            val minusHalf = (H * 0.38f) / 2f
+            drawLine(
+                color = color,
+                start = Offset(minusCx - minusHalf, minusCy),
+                end = Offset(minusCx + minusHalf, minusCy),
+                strokeWidth = strokeBars,
+                cap = StrokeCap.Square
+            )
+        }
     }
 }
 
@@ -411,11 +374,12 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(spacing)
             ) {
-                // Row 1: AC/C, +/-, %, ÷ (Authentic Apple vector glyphs)
+                // Row 1: AC/C, +/-, %, ÷ (Exact equal visual heights)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(spacing)
                 ) {
+                    // AC/C button: increased to 42.sp to match exact visual height with % and +/-
                     UniversalIosButton(
                         defaultBg = ColorLightGray,
                         pressedBg = ColorLightGrayPressed,
@@ -426,10 +390,10 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                             vm.onClear()
                         }
                     ) { fg ->
-                        Text(text = clearLabel, color = fg, fontFamily = sfTextRegular, fontSize = 38.sp, fontWeight = FontWeight.Normal)
+                        Text(text = clearLabel, color = fg, fontFamily = sfTextRegular, fontSize = 42.sp, fontWeight = FontWeight.Normal)
                     }
 
-                    // Vector +/- glyph exactly matching public/assets/aistudio/plus-slash-minus_1f60594b.png
+                    // Vector +/- glyph created directly from SF Pro %: matches exact visual height
                     UniversalIosButton(
                         defaultBg = ColorLightGray,
                         pressedBg = ColorLightGrayPressed,
@@ -440,10 +404,10 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                             vm.onToggleSign()
                         }
                     ) { fg ->
-                        IosPlusMinusGlyph(color = fg, modifier = Modifier.fillMaxSize())
+                        IosPlusMinusGlyph(color = fg, glyphHeight = 29.dp)
                     }
 
-                    // Vector % glyph exactly matching public/assets/aistudio/percent_1d923e38.png
+                    // % button: rendered with genuine SF Pro font, matching exact height of AC and +/-
                     UniversalIosButton(
                         defaultBg = ColorLightGray,
                         pressedBg = ColorLightGrayPressed,
@@ -454,7 +418,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                             vm.onPercent()
                         }
                     ) { fg ->
-                        IosPercentGlyph(color = fg, modifier = Modifier.fillMaxSize())
+                        Text(text = "%", color = fg, fontFamily = sfTextRegular, fontSize = 42.sp, fontWeight = FontWeight.Normal)
                     }
 
                     UniversalIosButton(
@@ -741,9 +705,10 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                 val pressedBg = if (isOp) ColorOrangePressed else if (isTopLight) ColorLightGrayPressed else ColorSciGrayPressed
                 val defaultFg = if (isTopLight) ColorBlack else ColorWhite
 
-                // Real iOS: when 'mr' is activated, it displays darker gray #808080 with white text
+                // Real iOS: when 'mr' is activated, it displays darker gray #808080 with black text
                 val activeBgColor = if (isMr) ColorMrActiveBg else if (isOp) ColorWhite else ColorSciActiveBg
                 val activeFgColor = if (isMr) ColorMrActiveFg else if (isOp) ColorOrange else ColorSciActiveFg
+                val pressedActiveBgColor = if (isMr) ColorMrActivePressedBg else null
 
                 UniversalIosButton(
                     defaultBg = defaultBg,
@@ -751,6 +716,7 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                     defaultFg = defaultFg,
                     activeBg = activeBgColor,
                     activeFg = activeFgColor,
+                    pressedActiveBg = pressedActiveBgColor,
                     isActive = isActive,
                     modifier = Modifier.weight(1f).height(48.dp),
                     onClick = {
@@ -773,14 +739,31 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                     }
                 ) { fg ->
                     when (label) {
-                        "±" -> IosPlusMinusGlyph(color = fg, modifier = Modifier.fillMaxSize())
-                        "%" -> IosPercentGlyph(color = fg, modifier = Modifier.fillMaxSize())
+                        "±" -> IosPlusMinusGlyph(color = fg, glyphHeight = 16.dp)
+                        "%" -> {
+                            Text(
+                                text = "%",
+                                color = fg,
+                                fontFamily = sfTextRegular,
+                                fontSize = 23.sp,
+                                fontWeight = FontWeight.Normal
+                            )
+                        }
+                        "AC", "C" -> {
+                            Text(
+                                text = label,
+                                color = fg,
+                                fontFamily = sfTextRegular,
+                                fontSize = 23.sp,
+                                fontWeight = FontWeight.Normal
+                            )
+                        }
                         else -> {
                             Text(
                                 text = label,
                                 color = fg,
                                 fontFamily = sfTextRegular,
-                                fontSize = if (isOp) 34.sp else if (isTopLight) 22.sp else 19.sp,
+                                fontSize = if (isOp) 34.sp else 19.sp,
                                 fontWeight = FontWeight.Normal
                             )
                         }
