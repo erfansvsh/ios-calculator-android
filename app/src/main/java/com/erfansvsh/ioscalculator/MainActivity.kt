@@ -11,6 +11,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -24,8 +25,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
@@ -208,48 +213,130 @@ fun UniversalIosButton(
 }
 
 /**
- * Authentic iOS +/- icon matching real iPhone screenshot:
- * Bold raised +, centered slash, bold lowered −.
+ * Pixel-perfect Apple iOS Calculator '+/-' glyph vector
+ * Extracted directly from real iPhone image (public/assets/aistudio/plus-slash-minus_1f60594b.png).
+ * Unified across both portrait and landscape modes.
  */
 @Composable
-fun PlusMinusIcon(
+fun IosPlusMinusGlyph(
     color: Color,
-    modifier: Modifier = Modifier,
-    fontFamily: FontFamily
+    modifier: Modifier = Modifier
 ) {
-    Box(
-        modifier = modifier,
-        contentAlignment = Alignment.Center
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = "+",
-                color = color,
-                fontFamily = fontFamily,
-                fontSize = 25.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.offset(y = (-5).dp, x = 1.dp)
-            )
-            Text(
-                text = "/",
-                color = color,
-                fontFamily = fontFamily,
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Normal,
-                modifier = Modifier.offset(y = (-1).dp)
-            )
-            Text(
-                text = "−",
-                color = color,
-                fontFamily = fontFamily,
-                fontSize = 25.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.offset(y = 5.dp, x = (-1).dp)
-            )
-        }
+    Canvas(modifier = modifier) {
+        val s = min(size.width, size.height) / 2f
+        val strokeSlash = s * 0.074f
+        val strokeBars = s * 0.060f
+
+        // Central diagonal slash from bottom-left to top-right
+        drawLine(
+            color = color,
+            start = Offset(center.x - 0.235f * s, center.y + 0.295f * s),
+            end = Offset(center.x + 0.155f * s, center.y - 0.255f * s),
+            strokeWidth = strokeSlash,
+            cap = StrokeCap.Square
+        )
+
+        // Bold '+' sign (top-left)
+        val plusCx = center.x - 0.255f * s
+        val plusCy = center.y - 0.128f * s
+        val plusHalf = (s * 0.215f) / 2f
+        drawLine(
+            color = color,
+            start = Offset(plusCx - plusHalf, plusCy),
+            end = Offset(plusCx + plusHalf, plusCy),
+            strokeWidth = strokeBars,
+            cap = StrokeCap.Square
+        )
+        drawLine(
+            color = color,
+            start = Offset(plusCx, plusCy - plusHalf),
+            end = Offset(plusCx, plusCy + plusHalf),
+            strokeWidth = strokeBars,
+            cap = StrokeCap.Square
+        )
+
+        // Bold '−' sign (bottom-right)
+        val minusCx = center.x + 0.155f * s
+        val minusCy = center.y + 0.161f * s
+        val minusHalf = (s * 0.201f) / 2f
+        drawLine(
+            color = color,
+            start = Offset(minusCx - minusHalf, minusCy),
+            end = Offset(minusCx + minusHalf, minusCy),
+            strokeWidth = strokeBars,
+            cap = StrokeCap.Square
+        )
+    }
+}
+
+/**
+ * Pixel-perfect Apple iOS Calculator '%' glyph vector
+ * Extracted directly from real iPhone image (public/assets/aistudio/percent_1d923e38.png).
+ * Unified across both portrait and landscape modes.
+ */
+@Composable
+fun IosPercentGlyph(
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    Canvas(modifier = modifier) {
+        val s = min(size.width, size.height) / 2f
+        val strokeSlash = s * 0.074f
+        val strokeRing = s * 0.060f
+
+        // Central diagonal slash from bottom-left to top-right
+        drawLine(
+            color = color,
+            start = Offset(center.x - 0.235f * s, center.y + 0.289f * s),
+            end = Offset(center.x + 0.181f * s, center.y - 0.268f * s),
+            strokeWidth = strokeSlash,
+            cap = StrokeCap.Square
+        )
+
+        // Top ring (oval: rx = 0.121s, ry = 0.141s)
+        val topCx = center.x - 0.208f * s
+        val topCy = center.y - 0.134f * s
+        val topRx = s * 0.121f
+        val topRy = s * 0.141f
+        drawOval(
+            color = color,
+            topLeft = Offset(topCx - topRx, topCy - topRy),
+            size = Size(topRx * 2f, topRy * 2f),
+            style = Stroke(width = strokeRing)
+        )
+
+        // Bottom ring (oval: rx = 0.114s, ry = 0.134s)
+        val botCx = center.x + 0.188f * s
+        val botCy = center.y + 0.148f * s
+        val botRx = s * 0.114f
+        val botRy = s * 0.134f
+        drawOval(
+            color = color,
+            topLeft = Offset(botCx - botRx, botCy - botRy),
+            size = Size(botRx * 2f, botRy * 2f),
+            style = Stroke(width = strokeRing)
+        )
+    }
+}
+
+/**
+ * Decimal point dot exactly positioned like iPhone Calculator
+ * (downward by +14.4% of button diameter, matching zero-dot-equal_447dbf0a.png).
+ */
+@Composable
+fun IosDecimalDot(
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    Canvas(modifier = modifier) {
+        val s = min(size.width, size.height) / 2f
+        val dotRadius = s * 0.060f
+        val dotCenterY = center.y + s * 0.288f
+        drawCircle(
+            color = color,
+            radius = dotRadius,
+            center = Offset(center.x, dotCenterY)
+        )
     }
 }
 
@@ -315,244 +402,248 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Row 1: AC/C, +/-, %, ÷ (Generous iOS button typography)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            UniversalIosButton(
-                defaultBg = ColorLightGray,
-                pressedBg = ColorLightGrayPressed,
-                defaultFg = ColorBlack,
-                modifier = Modifier.weight(1f).aspectRatio(1f),
-                onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    vm.onClear()
-                }
-            ) { fg ->
-                Text(text = clearLabel, color = fg, fontFamily = sfTextRegular, fontSize = 38.sp, fontWeight = FontWeight.Normal)
-            }
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+            val spacing = 12.dp
+            val buttonSize = (maxWidth - spacing * 3) / 4
+            val zeroWidth = buttonSize * 2 + spacing
 
-            // Bold, balanced iOS +/- button
-            UniversalIosButton(
-                defaultBg = ColorLightGray,
-                pressedBg = ColorLightGrayPressed,
-                defaultFg = ColorBlack,
-                modifier = Modifier.weight(1f).aspectRatio(1f),
-                onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    vm.onToggleSign()
-                }
-            ) { fg ->
-                PlusMinusIcon(color = fg, fontFamily = sfTextRegular)
-            }
-
-            // Bold, prominent iOS % button matching iOS.PNG
-            UniversalIosButton(
-                defaultBg = ColorLightGray,
-                pressedBg = ColorLightGrayPressed,
-                defaultFg = ColorBlack,
-                modifier = Modifier.weight(1f).aspectRatio(1f),
-                onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    vm.onPercent()
-                }
-            ) { fg ->
-                Text(text = "%", color = fg, fontFamily = sfTextRegular, fontSize = 38.sp, fontWeight = FontWeight.Bold)
-            }
-
-            UniversalIosButton(
-                defaultBg = ColorOrange,
-                pressedBg = ColorOrangePressed,
-                defaultFg = ColorWhite,
-                activeBg = ColorWhite,
-                activeFg = ColorOrange,
-                isActive = activeOperator == "÷",
-                modifier = Modifier.weight(1f).aspectRatio(1f),
-                onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    vm.onOperator("÷")
-                }
-            ) { fg ->
-                Text(text = "÷", color = fg, fontFamily = sfTextRegular, fontSize = 48.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-3).dp))
-            }
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Row 2: 7, 8, 9, × (Large, confident digits matching iOS.PNG)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            listOf("7", "8", "9").forEach { digit ->
-                UniversalIosButton(
-                    defaultBg = ColorDarkGray,
-                    pressedBg = ColorDarkGrayPressed,
-                    defaultFg = ColorWhite,
-                    modifier = Modifier.weight(1f).aspectRatio(1f),
-                    onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        vm.onDigit(digit)
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(spacing)
+            ) {
+                // Row 1: AC/C, +/-, %, ÷ (Authentic Apple vector glyphs)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(spacing)
+                ) {
+                    UniversalIosButton(
+                        defaultBg = ColorLightGray,
+                        pressedBg = ColorLightGrayPressed,
+                        defaultFg = ColorBlack,
+                        modifier = Modifier.size(buttonSize),
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            vm.onClear()
+                        }
+                    ) { fg ->
+                        Text(text = clearLabel, color = fg, fontFamily = sfTextRegular, fontSize = 38.sp, fontWeight = FontWeight.Normal)
                     }
-                ) { fg ->
-                    Text(text = digit, color = fg, fontFamily = sfTextRegular, fontSize = 46.sp, fontWeight = FontWeight.Normal)
-                }
-            }
 
-            UniversalIosButton(
-                defaultBg = ColorOrange,
-                pressedBg = ColorOrangePressed,
-                defaultFg = ColorWhite,
-                activeBg = ColorWhite,
-                activeFg = ColorOrange,
-                isActive = activeOperator == "×",
-                modifier = Modifier.weight(1f).aspectRatio(1f),
-                onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    vm.onOperator("×")
-                }
-            ) { fg ->
-                Text(text = "×", color = fg, fontFamily = sfTextRegular, fontSize = 44.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-2).dp))
-            }
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Row 3: 4, 5, 6, −
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            listOf("4", "5", "6").forEach { digit ->
-                UniversalIosButton(
-                    defaultBg = ColorDarkGray,
-                    pressedBg = ColorDarkGrayPressed,
-                    defaultFg = ColorWhite,
-                    modifier = Modifier.weight(1f).aspectRatio(1f),
-                    onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        vm.onDigit(digit)
+                    // Vector +/- glyph exactly matching public/assets/aistudio/plus-slash-minus_1f60594b.png
+                    UniversalIosButton(
+                        defaultBg = ColorLightGray,
+                        pressedBg = ColorLightGrayPressed,
+                        defaultFg = ColorBlack,
+                        modifier = Modifier.size(buttonSize),
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            vm.onToggleSign()
+                        }
+                    ) { fg ->
+                        IosPlusMinusGlyph(color = fg, modifier = Modifier.fillMaxSize())
                     }
-                ) { fg ->
-                    Text(text = digit, color = fg, fontFamily = sfTextRegular, fontSize = 46.sp, fontWeight = FontWeight.Normal)
-                }
-            }
 
-            UniversalIosButton(
-                defaultBg = ColorOrange,
-                pressedBg = ColorOrangePressed,
-                defaultFg = ColorWhite,
-                activeBg = ColorWhite,
-                activeFg = ColorOrange,
-                isActive = activeOperator == "−",
-                modifier = Modifier.weight(1f).aspectRatio(1f),
-                onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    vm.onOperator("−")
-                }
-            ) { fg ->
-                Text(text = "−", color = fg, fontFamily = sfTextRegular, fontSize = 48.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-2).dp))
-            }
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Row 4: 1, 2, 3, +
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            listOf("1", "2", "3").forEach { digit ->
-                UniversalIosButton(
-                    defaultBg = ColorDarkGray,
-                    pressedBg = ColorDarkGrayPressed,
-                    defaultFg = ColorWhite,
-                    modifier = Modifier.weight(1f).aspectRatio(1f),
-                    onClick = {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        vm.onDigit(digit)
+                    // Vector % glyph exactly matching public/assets/aistudio/percent_1d923e38.png
+                    UniversalIosButton(
+                        defaultBg = ColorLightGray,
+                        pressedBg = ColorLightGrayPressed,
+                        defaultFg = ColorBlack,
+                        modifier = Modifier.size(buttonSize),
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            vm.onPercent()
+                        }
+                    ) { fg ->
+                        IosPercentGlyph(color = fg, modifier = Modifier.fillMaxSize())
                     }
-                ) { fg ->
-                    Text(text = digit, color = fg, fontFamily = sfTextRegular, fontSize = 46.sp, fontWeight = FontWeight.Normal)
-                }
-            }
 
-            UniversalIosButton(
-                defaultBg = ColorOrange,
-                pressedBg = ColorOrangePressed,
-                defaultFg = ColorWhite,
-                activeBg = ColorWhite,
-                activeFg = ColorOrange,
-                isActive = activeOperator == "+",
-                modifier = Modifier.weight(1f).aspectRatio(1f),
-                onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    vm.onOperator("+")
+                    UniversalIosButton(
+                        defaultBg = ColorOrange,
+                        pressedBg = ColorOrangePressed,
+                        defaultFg = ColorWhite,
+                        activeBg = ColorWhite,
+                        activeFg = ColorOrange,
+                        isActive = activeOperator == "÷",
+                        modifier = Modifier.size(buttonSize),
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            vm.onOperator("÷")
+                        }
+                    ) { fg ->
+                        Text(text = "÷", color = fg, fontFamily = sfTextRegular, fontSize = 48.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-3).dp))
+                    }
                 }
-            ) { fg ->
-                Text(text = "+", color = fg, fontFamily = sfTextRegular, fontSize = 46.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-2).dp))
-            }
-        }
 
-        Spacer(modifier = Modifier.height(12.dp))
+                // Row 2: 7, 8, 9, ×
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(spacing)
+                ) {
+                    listOf("7", "8", "9").forEach { digit ->
+                        UniversalIosButton(
+                            defaultBg = ColorDarkGray,
+                            pressedBg = ColorDarkGrayPressed,
+                            defaultFg = ColorWhite,
+                            modifier = Modifier.size(buttonSize),
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                vm.onDigit(digit)
+                            }
+                        ) { fg ->
+                            Text(text = digit, color = fg, fontFamily = sfTextRegular, fontSize = 46.sp, fontWeight = FontWeight.Normal)
+                        }
+                    }
 
-        // Row 5: 0 (spanning 2 columns, exactly aligned horizontally with "1"), ., =
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            // '0' button spanning 2 columns: left section matches column 1 width exactly, centering '0' directly under '1'
-            UniversalIosButton(
-                defaultBg = ColorDarkGray,
-                pressedBg = ColorDarkGrayPressed,
-                defaultFg = ColorWhite,
-                modifier = Modifier
-                    .weight(2f)
-                    .aspectRatio(2.15f),
-                onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    vm.onDigit("0")
+                    UniversalIosButton(
+                        defaultBg = ColorOrange,
+                        pressedBg = ColorOrangePressed,
+                        defaultFg = ColorWhite,
+                        activeBg = ColorWhite,
+                        activeFg = ColorOrange,
+                        isActive = activeOperator == "×",
+                        modifier = Modifier.size(buttonSize),
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            vm.onOperator("×")
+                        }
+                    ) { fg ->
+                        Text(text = "×", color = fg, fontFamily = sfTextRegular, fontSize = 44.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-2).dp))
+                    }
                 }
-            ) { fg ->
-                Row(modifier = Modifier.fillMaxSize()) {
-                    Box(
+
+                // Row 3: 4, 5, 6, −
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(spacing)
+                ) {
+                    listOf("4", "5", "6").forEach { digit ->
+                        UniversalIosButton(
+                            defaultBg = ColorDarkGray,
+                            pressedBg = ColorDarkGrayPressed,
+                            defaultFg = ColorWhite,
+                            modifier = Modifier.size(buttonSize),
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                vm.onDigit(digit)
+                            }
+                        ) { fg ->
+                            Text(text = digit, color = fg, fontFamily = sfTextRegular, fontSize = 46.sp, fontWeight = FontWeight.Normal)
+                        }
+                    }
+
+                    UniversalIosButton(
+                        defaultBg = ColorOrange,
+                        pressedBg = ColorOrangePressed,
+                        defaultFg = ColorWhite,
+                        activeBg = ColorWhite,
+                        activeFg = ColorOrange,
+                        isActive = activeOperator == "−",
+                        modifier = Modifier.size(buttonSize),
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            vm.onOperator("−")
+                        }
+                    ) { fg ->
+                        Text(text = "−", color = fg, fontFamily = sfTextRegular, fontSize = 48.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-2).dp))
+                    }
+                }
+
+                // Row 4: 1, 2, 3, +
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(spacing)
+                ) {
+                    listOf("1", "2", "3").forEach { digit ->
+                        UniversalIosButton(
+                            defaultBg = ColorDarkGray,
+                            pressedBg = ColorDarkGrayPressed,
+                            defaultFg = ColorWhite,
+                            modifier = Modifier.size(buttonSize),
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                vm.onDigit(digit)
+                            }
+                        ) { fg ->
+                            Text(text = digit, color = fg, fontFamily = sfTextRegular, fontSize = 46.sp, fontWeight = FontWeight.Normal)
+                        }
+                    }
+
+                    UniversalIosButton(
+                        defaultBg = ColorOrange,
+                        pressedBg = ColorOrangePressed,
+                        defaultFg = ColorWhite,
+                        activeBg = ColorWhite,
+                        activeFg = ColorOrange,
+                        isActive = activeOperator == "+",
+                        modifier = Modifier.size(buttonSize),
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            vm.onOperator("+")
+                        }
+                    ) { fg ->
+                        Text(text = "+", color = fg, fontFamily = sfTextRegular, fontSize = 46.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-2).dp))
+                    }
+                }
+
+                // Row 5: 0 (spanning 2 columns, exactly aligned vertically with "." and "="), ., =
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(spacing)
+                ) {
+                    // '0' button: height is mathematically identical to buttonSize, bottom edge perfectly aligned with '.' and '='
+                    UniversalIosButton(
+                        defaultBg = ColorDarkGray,
+                        pressedBg = ColorDarkGrayPressed,
+                        defaultFg = ColorWhite,
+                        shape = CircleShape,
                         modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(text = "0", color = fg, fontFamily = sfTextRegular, fontSize = 46.sp, fontWeight = FontWeight.Normal)
+                            .width(zeroWidth)
+                            .height(buttonSize),
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            vm.onDigit("0")
+                        }
+                    ) { fg ->
+                        Row(modifier = Modifier.fillMaxSize()) {
+                            // Slot matching Column 1 width exactly: digit '0' is 100% horizontally aligned with '1'
+                            Box(
+                                modifier = Modifier
+                                    .size(buttonSize),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(text = "0", color = fg, fontFamily = sfTextRegular, fontSize = 46.sp, fontWeight = FontWeight.Normal)
+                            }
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
                     }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Spacer(modifier = Modifier.weight(1f))
-                }
-            }
 
-            UniversalIosButton(
-                defaultBg = ColorDarkGray,
-                pressedBg = ColorDarkGrayPressed,
-                defaultFg = ColorWhite,
-                modifier = Modifier.weight(1f).aspectRatio(1f),
-                onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    vm.onDecimal()
-                }
-            ) { fg ->
-                Text(text = ".", color = fg, fontFamily = sfTextRegular, fontSize = 46.sp, fontWeight = FontWeight.Bold, modifier = Modifier.offset(y = (-4).dp))
-            }
+                    // Decimal '.' button: dot placed at authentic Apple downward baseline (+14.4% below center)
+                    UniversalIosButton(
+                        defaultBg = ColorDarkGray,
+                        pressedBg = ColorDarkGrayPressed,
+                        defaultFg = ColorWhite,
+                        modifier = Modifier.size(buttonSize),
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            vm.onDecimal()
+                        }
+                    ) { fg ->
+                        IosDecimalDot(color = fg, modifier = Modifier.fillMaxSize())
+                    }
 
-            UniversalIosButton(
-                defaultBg = ColorOrange,
-                pressedBg = ColorOrangePressed,
-                defaultFg = ColorWhite,
-                modifier = Modifier.weight(1f).aspectRatio(1f),
-                onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    vm.onEquals()
+                    UniversalIosButton(
+                        defaultBg = ColorOrange,
+                        pressedBg = ColorOrangePressed,
+                        defaultFg = ColorWhite,
+                        modifier = Modifier.size(buttonSize),
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            vm.onEquals()
+                        }
+                    ) { fg ->
+                        Text(text = "=", color = fg, fontFamily = sfTextRegular, fontSize = 46.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-2).dp))
+                    }
                 }
-            ) { fg ->
-                Text(text = "=", color = fg, fontFamily = sfTextRegular, fontSize = 46.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-2).dp))
             }
         }
     }
@@ -681,16 +772,18 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                         }
                     }
                 ) { fg ->
-                    if (label == "±") {
-                        PlusMinusIcon(color = fg, fontFamily = sfTextRegular)
-                    } else {
-                        Text(
-                            text = label,
-                            color = fg,
-                            fontFamily = sfTextRegular,
-                            fontSize = if (isOp) 34.sp else if (isTopLight) 22.sp else 19.sp,
-                            fontWeight = if (label == "%") FontWeight.Bold else FontWeight.Normal
-                        )
+                    when (label) {
+                        "±" -> IosPlusMinusGlyph(color = fg, modifier = Modifier.fillMaxSize())
+                        "%" -> IosPercentGlyph(color = fg, modifier = Modifier.fillMaxSize())
+                        else -> {
+                            Text(
+                                text = label,
+                                color = fg,
+                                fontFamily = sfTextRegular,
+                                fontSize = if (isOp) 34.sp else if (isTopLight) 22.sp else 19.sp,
+                                fontWeight = FontWeight.Normal
+                            )
+                        }
                     }
                 }
             }
@@ -905,7 +998,7 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                     vm.onDecimal()
                 }
             ) { fg ->
-                Text(text = ".", color = fg, fontFamily = sfTextRegular, fontSize = 30.sp, fontWeight = FontWeight.Bold, modifier = Modifier.offset(y = (-2).dp))
+                IosDecimalDot(color = fg, modifier = Modifier.fillMaxSize())
             }
 
             // Equals button: Unified with landscape row matching height 48.dp
