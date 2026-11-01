@@ -303,8 +303,8 @@ fun IosPlusMinusGlyph(
 }
 
 /**
- * Decimal point dot exactly positioned like iPhone Calculator
- * (downward by +14.4% of button diameter, matching zero-dot-equal_447dbf0a.png).
+ * Authentic Apple iOS decimal dot '.' glyph rendered on Canvas.
+ * Matches the exact diameter and downward baseline position from iPhone screenshots (+14.4% below vertical center).
  */
 @Composable
 fun IosDecimalDot(
@@ -312,14 +312,9 @@ fun IosDecimalDot(
     modifier: Modifier = Modifier
 ) {
     Canvas(modifier = modifier) {
-        val s = min(size.width, size.height) / 2f
-        val dotRadius = s * 0.060f
-        val dotCenterY = center.y + s * 0.288f
-        drawCircle(
-            color = color,
-            radius = dotRadius,
-            center = Offset(center.x, dotCenterY)
-        )
+        val dotRadius = size.minDimension * 0.052f
+        val dotCenter = Offset(size.width / 2f, size.height * 0.644f)
+        drawCircle(color = color, radius = dotRadius, center = dotCenter)
     }
 }
 
@@ -448,12 +443,11 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(spacing)
             ) {
-                // Row 1: AC/C, +/-, %, ÷ (Authentic Apple vector glyphs)
+                // Row 1: AC, +/-, %, ÷
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(spacing)
                 ) {
-                    // AC/C button: increased to 42.sp to match exact visual height with % and +/-
                     UniversalIosButton(
                         defaultBg = ColorLightGray,
                         pressedBg = ColorLightGrayPressed,
@@ -464,10 +458,15 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                             vm.onClear()
                         }
                     ) { fg ->
-                        Text(text = clearLabel, color = fg, fontFamily = sfTextRegular, fontSize = 42.sp, fontWeight = FontWeight.Normal)
+                        Text(
+                            text = clearLabel,
+                            color = fg,
+                            fontFamily = sfTextRegular,
+                            fontSize = if (clearLabel == "AC") 36.sp else 40.sp,
+                            fontWeight = FontWeight.Normal
+                        )
                     }
 
-                    // Vector +/- glyph created directly from SF Pro %: matches exact visual height
                     UniversalIosButton(
                         defaultBg = ColorLightGray,
                         pressedBg = ColorLightGrayPressed,
@@ -478,10 +477,9 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                             vm.onToggleSign()
                         }
                     ) { fg ->
-                        IosPlusMinusGlyph(color = fg, glyphHeight = 29.dp)
+                        IosPlusMinusGlyph(color = fg, glyphHeight = 31.dp)
                     }
 
-                    // % button: rendered with genuine SF Pro font, matching exact height of AC and +/-
                     UniversalIosButton(
                         defaultBg = ColorLightGray,
                         pressedBg = ColorLightGrayPressed,
@@ -492,7 +490,13 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                             vm.onPercent()
                         }
                     ) { fg ->
-                        Text(text = "%", color = fg, fontFamily = sfTextRegular, fontSize = 42.sp, fontWeight = FontWeight.Normal)
+                        Text(
+                            text = "%",
+                            color = fg,
+                            fontFamily = sfTextRegular,
+                            fontSize = 33.sp,
+                            fontWeight = FontWeight.Normal
+                        )
                     }
 
                     UniversalIosButton(
@@ -508,7 +512,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                             vm.onOperator("÷")
                         }
                     ) { fg ->
-                        Text(text = "÷", color = fg, fontFamily = sfTextRegular, fontSize = 48.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-3).dp))
+                        Text(text = "÷", color = fg, fontFamily = sfTextRegular, fontSize = 50.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-2).dp))
                     }
                 }
 
@@ -525,7 +529,10 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                             modifier = Modifier.size(buttonSize),
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                vm.onDigit(digit, isLandscape = false)
+                                val digitsOnly = displayValue.count { it.isDigit() }
+                                if (activeOperator != null || digitsOnly < 9 || displayValue == "0" || displayValue == "-0") {
+                                    vm.onDigit(digit)
+                                }
                             }
                         ) { fg ->
                             Text(text = digit, color = fg, fontFamily = sfTextRegular, fontSize = 46.sp, fontWeight = FontWeight.Normal)
@@ -562,7 +569,10 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                             modifier = Modifier.size(buttonSize),
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                vm.onDigit(digit, isLandscape = false)
+                                val digitsOnly = displayValue.count { it.isDigit() }
+                                if (activeOperator != null || digitsOnly < 9 || displayValue == "0" || displayValue == "-0") {
+                                    vm.onDigit(digit)
+                                }
                             }
                         ) { fg ->
                             Text(text = digit, color = fg, fontFamily = sfTextRegular, fontSize = 46.sp, fontWeight = FontWeight.Normal)
@@ -599,7 +609,10 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                             modifier = Modifier.size(buttonSize),
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                vm.onDigit(digit, isLandscape = false)
+                                val digitsOnly = displayValue.count { it.isDigit() }
+                                if (activeOperator != null || digitsOnly < 9 || displayValue == "0" || displayValue == "-0") {
+                                    vm.onDigit(digit)
+                                }
                             }
                         ) { fg ->
                             Text(text = digit, color = fg, fontFamily = sfTextRegular, fontSize = 46.sp, fontWeight = FontWeight.Normal)
@@ -639,7 +652,10 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                             .height(buttonSize),
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            vm.onDigit("0", isLandscape = false)
+                            val digitsOnly = displayValue.count { it.isDigit() }
+                            if (activeOperator != null || digitsOnly < 9 || displayValue == "0" || displayValue == "-0") {
+                                vm.onDigit("0")
+                            }
                         }
                     ) { fg ->
                         Row(modifier = Modifier.fillMaxSize()) {
@@ -669,6 +685,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                         IosDecimalDot(color = fg, modifier = Modifier.fillMaxSize())
                     }
 
+                    // Equals button
                     UniversalIosButton(
                         defaultBg = ColorOrange,
                         pressedBg = ColorOrangePressed,
@@ -758,89 +775,80 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
         val radButtonLabel = if (isRadMode) "Deg" else "Rad"
 
         val sciCols = listOf(
-            listOf("(", ")", "mc", "m+", "m-", "mr", clearLabel, "±", "%", "÷"),
-            listOf(if (is2nd) "2ⁿᵈ" else "2ⁿᵈ", "x²", "x³", "xʸ", if (is2nd) "yˣ" else "eˣ", if (is2nd) "2ˣ" else "10ˣ", "7", "8", "9", "×"),
-            listOf("1/x", "²√x", "³√x", "ʸ√x", if (is2nd) "logᵧ" else "ln", if (is2nd) "log₂" else "log₁₀", "4", "5", "6", "−"),
-            listOf("x!", if (is2nd) "sin⁻¹" else "sin", if (is2nd) "cos⁻¹" else "cos", if (is2nd) "tan⁻¹" else "tan", "e", "EE", "1", "2", "3", "+"),
-            listOf(radButtonLabel, if (is2nd) "sinh⁻¹" else "sinh", if (is2nd) "cosh⁻¹" else "cosh", if (is2nd) "tanh⁻¹" else "tanh", "π", "Rand", "0", ".", "=")
+            listOf("(", ")", "mc", "m+", "m-", "mr", clearLabel, "+/-", "%", "÷"),
+            listOf(if (is2nd) "2ⁿᵈ" else "2ⁿᵈ", "x²", "x³", if (is2nd) "yˣ" else "xʸ", if (is2nd) "2ˣ" else "eˣ", if (is2nd) "log_y" else "10ˣ", "7", "8", "9", "×"),
+            listOf("1/x", "²√x", "³√x", if (is2nd) "ʸ√x" else "ʸ√x", if (is2nd) "log₂" else "ln", if (is2nd) "logᵧ" else "log₁₀", "4", "5", "6", "−"),
+            listOf("x!", if (is2nd) "sin⁻¹" else "sin", if (is2nd) "cos⁻¹" else "cos", if (is2nd) "tan⁻¹" else "tan", "e", "EE", "1", "2", "3", "+")
         )
 
         // Row 1
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             sciCols[0].forEachIndexed { i, label ->
                 val isOp = i == 9
-                val isTopLight = i in 6..8
+                val isTopGray = i in 6..8
                 val isMr = label == "mr"
+
+                val defaultBg = if (isOp) ColorOrange else if (isTopGray) ColorLightGray else ColorSciGray
+                val pressedBg = if (isOp) ColorOrangePressed else if (isTopGray) ColorLightGrayPressed else ColorSciGrayPressed
+                val defaultFg = if (isTopGray) ColorBlack else ColorWhite
+
                 val isMrActive = isMr && hasMemory
-                val isDivActive = isOp && activeOperator == "÷"
-                val isActive = isDivActive || isMrActive
+                val buttonBg = if (isMrActive) ColorMrActiveBg else defaultBg
+                val buttonFg = if (isMrActive) ColorMrActiveFg else defaultFg
+                val buttonPressedBg = if (isMrActive) ColorMrActivePressedBg else pressedBg
 
-                val defaultBg = if (isOp) ColorOrange else if (isTopLight) ColorLightGray else ColorSciGray
-                val pressedBg = if (isOp) ColorOrangePressed else if (isTopLight) ColorLightGrayPressed else ColorSciGrayPressed
-                val defaultFg = if (isTopLight) ColorBlack else ColorWhite
-
-                // Real iOS: when 'mr' is activated, it displays darker gray #808080 with black text
-                val activeBgColor = if (isMr) ColorMrActiveBg else if (isOp) ColorWhite else ColorSciActiveBg
-                val activeFgColor = if (isMr) ColorMrActiveFg else if (isOp) ColorOrange else ColorSciActiveFg
-                val pressedActiveBgColor = if (isMr) ColorMrActivePressedBg else null
+                val isActiveOp = isOp && activeOperator == "÷"
 
                 UniversalIosButton(
-                    defaultBg = defaultBg,
-                    pressedBg = pressedBg,
-                    defaultFg = defaultFg,
-                    activeBg = activeBgColor,
-                    activeFg = activeFgColor,
-                    pressedActiveBg = pressedActiveBgColor,
-                    isActive = isActive,
+                    defaultBg = buttonBg,
+                    pressedBg = buttonPressedBg,
+                    defaultFg = buttonFg,
+                    isActive = isActiveOp,
+                    activeBg = ColorWhite,
+                    activeFg = ColorOrange,
                     modifier = Modifier.weight(1f).height(48.dp),
                     onClick = {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         when (label) {
-                            "AC", "C" -> vm.onClear()
-                            "±" -> vm.onToggleSign()
-                            "%" -> vm.onPercent()
-                            "÷" -> vm.onOperator("÷")
                             "mc" -> {
                                 hasMemory = false
-                                vm.onScientific(label)
+                                vm.onScientific("mc")
                             }
-                            "m+", "m-" -> {
+                            "m+" -> {
                                 hasMemory = true
-                                vm.onScientific(label)
+                                vm.onScientific("m+")
                             }
+                            "m-" -> {
+                                hasMemory = true
+                                vm.onScientific("m-")
+                            }
+                            "C", "AC" -> vm.onClear()
+                            "+/-" -> vm.onToggleSign()
+                            "%" -> vm.onPercent()
+                            "÷" -> vm.onOperator("÷")
                             else -> vm.onScientific(label)
                         }
                     }
                 ) { fg ->
-                    when (label) {
-                        "±" -> IosPlusMinusGlyph(color = fg, glyphHeight = 16.dp)
-                        "%" -> {
-                            Text(
-                                text = "%",
-                                color = fg,
-                                fontFamily = sfTextRegular,
-                                fontSize = 23.sp,
-                                fontWeight = FontWeight.Normal
-                            )
-                        }
-                        "AC", "C" -> {
-                            Text(
-                                text = label,
-                                color = fg,
-                                fontFamily = sfTextRegular,
-                                fontSize = 23.sp,
-                                fontWeight = FontWeight.Normal
-                            )
-                        }
-                        else -> {
-                            Text(
-                                text = label,
-                                color = fg,
-                                fontFamily = sfTextRegular,
-                                fontSize = if (isOp) 34.sp else 19.sp,
-                                fontWeight = FontWeight.Normal
-                            )
-                        }
+                    if (label == "+/-") {
+                        IosPlusMinusGlyph(color = fg, glyphHeight = 24.dp)
+                    } else if (label == "%") {
+                        Text(
+                            text = "%",
+                            color = fg,
+                            fontFamily = sfTextRegular,
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Normal
+                        )
+                    } else {
+                        Text(
+                            text = label,
+                            color = fg,
+                            fontFamily = sfTextRegular,
+                            fontSize = if (isOp) 34.sp else if (isTopGray) 24.sp else 19.sp,
+                            fontWeight = FontWeight.Normal,
+                            modifier = if (isOp) Modifier.offset(y = (-1).dp) else Modifier
+                        )
                     }
                 }
             }
@@ -873,7 +881,7 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                     onClick = {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         when {
-                            isDigit -> vm.onDigit(label, isLandscape = true)
+                            isDigit -> vm.onDigit(label)
                             isOp -> vm.onOperator("×")
                             label == "2ⁿᵈ" -> vm.toggle2nd()
                             isPowerOp -> vm.onOperator(label)
@@ -918,7 +926,7 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                     onClick = {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         when {
-                            isDigit -> vm.onDigit(label, isLandscape = true)
+                            isDigit -> vm.onDigit(label)
                             isOp -> vm.onOperator("−")
                             isRootOp -> vm.onOperator(label)
                             else -> vm.onScientific(label)
@@ -962,7 +970,7 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                     onClick = {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         when {
-                            isDigit -> vm.onDigit(label, isLandscape = true)
+                            isDigit -> vm.onDigit(label)
                             isOp -> vm.onOperator("+")
                             isEEOp -> vm.onOperator("EE")
                             else -> vm.onScientific(label)
@@ -1027,7 +1035,7 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                 modifier = Modifier.weight(2f).height(48.dp),
                 onClick = {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    vm.onDigit("0", isLandscape = true)
+                    vm.onDigit("0")
                 }
             ) { fg ->
                 Row(modifier = Modifier.fillMaxSize()) {
