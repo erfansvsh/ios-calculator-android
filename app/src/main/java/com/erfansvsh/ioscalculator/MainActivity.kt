@@ -330,7 +330,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
     val haptic = LocalHapticFeedback.current
 
     // Load authentic Apple SF Pro fonts with fallback
-    val sfDisplayThin = rememberSfFont("sf_pro_display_thin.otf")
+    val sfDisplayThin = rememberSfFont("sf_pro_text_regular.otf")
     val sfDisplayLight = rememberSfFont("sf_pro_display_light.otf")
     val sfTextRegular = rememberSfFont("sf_pro_text_regular.otf")
 
@@ -715,7 +715,7 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
     val haptic = LocalHapticFeedback.current
 
     // Load authentic Apple SF Pro fonts with fallback
-    val sfDisplayThin = rememberSfFont("sf_pro_display_thin.otf")
+    val sfDisplayThin = rememberSfFont("sf_pro_text_regular.otf")
     val sfTextRegular = rememberSfFont("sf_pro_text_regular.otf")
 
     // Local memory presence state for 'mr' highlight: active on m+/m-, cleared on mc
