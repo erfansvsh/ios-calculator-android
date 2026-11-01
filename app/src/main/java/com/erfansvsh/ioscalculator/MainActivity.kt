@@ -282,7 +282,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
     val sfTextRegular = rememberSfFont("sf_pro_text_regular.otf")
 
     val clearLabel = if (displayValue != "0") "C" else "AC"
-    val formattedDisplay = formatPortraitDisplay(displayValue)
+    val formattedDisplay = vm.getFormattedDisplay(isLandscape = false)
 
     Column(
         modifier = Modifier
@@ -463,10 +463,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                             modifier = Modifier.size(buttonSize),
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                val digitsOnly = displayValue.count { it.isDigit() }
-                                if (activeOperator != null || digitsOnly < 9 || displayValue == "0" || displayValue == "-0") {
-                                    vm.onDigit(digit)
-                                }
+                                vm.onDigit(digit)
                             }
                         ) { fg ->
                             Text(text = digit, color = fg, fontFamily = sfTextRegular, fontSize = 46.sp, fontWeight = FontWeight.Normal)
@@ -503,10 +500,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                             modifier = Modifier.size(buttonSize),
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                val digitsOnly = displayValue.count { it.isDigit() }
-                                if (activeOperator != null || digitsOnly < 9 || displayValue == "0" || displayValue == "-0") {
-                                    vm.onDigit(digit)
-                                }
+                                vm.onDigit(digit)
                             }
                         ) { fg ->
                             Text(text = digit, color = fg, fontFamily = sfTextRegular, fontSize = 46.sp, fontWeight = FontWeight.Normal)
@@ -543,10 +537,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                             modifier = Modifier.size(buttonSize),
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                val digitsOnly = displayValue.count { it.isDigit() }
-                                if (activeOperator != null || digitsOnly < 9 || displayValue == "0" || displayValue == "-0") {
-                                    vm.onDigit(digit)
-                                }
+                                vm.onDigit(digit)
                             }
                         ) { fg ->
                             Text(text = digit, color = fg, fontFamily = sfTextRegular, fontSize = 46.sp, fontWeight = FontWeight.Normal)
@@ -585,10 +576,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                             .height(buttonSize),
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            val digitsOnly = displayValue.count { it.isDigit() }
-                            if (activeOperator != null || digitsOnly < 9 || displayValue == "0" || displayValue == "-0") {
-                                vm.onDigit("0")
-                            }
+                            vm.onDigit("0")
                         }
                     ) { fg ->
                         Row(modifier = Modifier.fillMaxSize()) {
@@ -647,7 +635,7 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
     var hasMemory by remember { mutableStateOf(false) }
 
     val clearLabel = if (displayValue != "0") "C" else "AC"
-    val formattedDisplay = formatLandscapeDisplay(displayValue)
+    val formattedDisplay = vm.getFormattedDisplay(isLandscape = true)
 
     Column(
         modifier = Modifier
@@ -656,7 +644,7 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
             .navigationBarsPadding()
             .padding(horizontal = 16.dp, vertical = 6.dp)
     ) {
-        // Landscape Display with Rad/Deg indicator and upward offset shift (original button sizes restored)
+        // Landscape Display with Rad/Deg indicator and upward offset shift
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -709,7 +697,7 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
             listOf(radButtonLabel, if (is2nd) "sinh⁻¹" else "sinh", if (is2nd) "cosh⁻¹" else "cosh", if (is2nd) "tanh⁻¹" else "tanh", "π", "Rand", "0", ".", "=")
         )
 
-        // Row 1 (Landscape button sizes restored to original 16.dp and 23.sp)
+        // Row 1
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             sciCols[0].forEachIndexed { i, label ->
                 val isOp = i == 9
@@ -1010,113 +998,5 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                 Text(text = "=", color = fg, fontFamily = sfTextRegular, fontSize = 34.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-1).dp))
             }
         }
-    }
-}
-
-fun formatPortraitDisplay(value: String): String {
-    if (value == "Error") return "Error"
-
-    // While user is actively typing a decimal ending with a dot e.g. "3."
-    if (value.endsWith(".") && !value.contains("e") && !value.contains("E")) {
-        val parts = value.split(".")
-        val isNeg = parts[0].startsWith("-")
-        val cleanInt = if (isNeg) parts[0].substring(1) else parts[0]
-        val formattedInt = cleanInt.reversed().chunked(3).joinToString(",").reversed()
-        val signedInt = if (isNeg) "-$formattedInt" else formattedInt
-        return "$signedInt."
-    }
-
-    val num = value.toDoubleOrNull() ?: return value
-    if (num == 0.0) return if (value.startsWith("-")) "-0" else "0"
-
-    val absNum = abs(num)
-
-    if (absNum >= 1e9 || (absNum < 1e-8 && absNum > 0.0)) {
-        val expStr = String.format(Locale.US, "%.6e", num)
-            .replace("+", "")
-            .replace("e0", "e")
-            .replace("e-0", "e-")
-        val eIndex = expStr.indexOf('e')
-        return if (eIndex != -1) {
-            val mantissa = expStr.substring(0, eIndex)
-            val exponent = expStr.substring(eIndex)
-            val cleanMantissa = if (mantissa.contains('.')) mantissa.trimEnd('0').trimEnd('.') else mantissa
-            cleanMantissa + exponent
-        } else {
-            expStr
-        }
-    }
-
-    return try {
-        val mc = MathContext(9, RoundingMode.HALF_UP)
-        val bd = BigDecimal.valueOf(num).round(mc).stripTrailingZeros()
-        val plain = bd.toPlainString()
-        val parts = plain.split(".")
-        val isNeg = parts[0].startsWith("-")
-        val cleanInt = if (isNeg) parts[0].substring(1) else parts[0]
-        val formattedInt = cleanInt.reversed().chunked(3).joinToString(",").reversed()
-        val signedInt = if (isNeg) "-$formattedInt" else formattedInt
-        if (parts.size > 1) "$signedInt.${parts[1]}" else signedInt
-    } catch (e: Exception) {
-        val parts = value.split(".")
-        val isNeg = parts[0].startsWith("-")
-        val cleanInt = if (isNeg) parts[0].substring(1) else parts[0]
-        val formattedInt = cleanInt.reversed().chunked(3).joinToString(",").reversed()
-        val signedInt = if (isNeg) "-$formattedInt" else formattedInt
-        if (parts.size > 1) "$signedInt.${parts[1]}" else signedInt
-    }
-}
-
-fun formatLandscapeDisplay(value: String): String {
-    if (value == "Error") return "Error"
-
-    // While user is actively typing a decimal ending with a dot e.g. "3."
-    if (value.endsWith(".") && !value.contains("e") && !value.contains("E")) {
-        val parts = value.split(".")
-        val isNeg = parts[0].startsWith("-")
-        val cleanInt = if (isNeg) parts[0].substring(1) else parts[0]
-        val formattedInt = cleanInt.reversed().chunked(3).joinToString(",").reversed()
-        val signedInt = if (isNeg) "-$formattedInt" else formattedInt
-        return "$signedInt."
-    }
-
-    val num = value.toDoubleOrNull() ?: return value
-    if (num == 0.0) return if (value.startsWith("-")) "-0" else "0"
-
-    val absNum = abs(num)
-
-    if (absNum >= 1e16 || (absNum < 1e-8 && absNum > 0.0)) {
-        val expStr = String.format(Locale.US, "%.10e", num)
-            .replace("+", "")
-            .replace("e0", "e")
-            .replace("e-0", "e-")
-        val eIndex = expStr.indexOf('e')
-        return if (eIndex != -1) {
-            val mantissa = expStr.substring(0, eIndex)
-            val exponent = expStr.substring(eIndex)
-            val cleanMantissa = if (mantissa.contains('.')) mantissa.trimEnd('0').trimEnd('.') else mantissa
-            cleanMantissa + exponent
-        } else {
-            expStr
-        }
-    }
-
-    return try {
-        val mc = MathContext(16, RoundingMode.HALF_UP)
-        val bd = BigDecimal.valueOf(num).round(mc).stripTrailingZeros()
-        val plain = bd.toPlainString()
-        val parts = plain.split(".")
-        val isNeg = parts[0].startsWith("-")
-        val cleanInt = if (isNeg) parts[0].substring(1) else parts[0]
-        val formattedInt = cleanInt.reversed().chunked(3).joinToString(",").reversed()
-        val signedInt = if (isNeg) "-$formattedInt" else formattedInt
-        if (parts.size > 1) "$signedInt.${parts[1]}" else signedInt
-    } catch (e: Exception) {
-        val parts = value.split(".")
-        val isNeg = parts[0].startsWith("-")
-        val cleanInt = if (isNeg) parts[0].substring(1) else parts[0]
-        val formattedInt = cleanInt.reversed().chunked(3).joinToString(",").reversed()
-        val signedInt = if (isNeg) "-$formattedInt" else formattedInt
-        if (parts.size > 1) "$signedInt.${parts[1]}" else signedInt
     }
 }
