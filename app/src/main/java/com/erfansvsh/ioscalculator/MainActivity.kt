@@ -57,11 +57,7 @@ import kotlin.math.*
 // =========================================================================
 // BUTTON ANIMATION TIMING CONFIGURATION (TUNABLE HERE)
 // =========================================================================
-// Attack: instantaneous touch-down response in milliseconds (default: 80ms)
 const val BUTTON_PRESS_DOWN_MS = 80
-
-// Release: soft, breath-like lingering color decay in milliseconds (default: 480ms)
-// Increase (e.g., 500, 520, 560) for an even slower fade, or decrease (e.g., 400, 350) for faster.
 const val BUTTON_RELEASE_FADE_MS = 480
 
 // =========================================================================
@@ -70,35 +66,25 @@ const val BUTTON_RELEASE_FADE_MS = 480
 val ColorBlack = Color(0xFF000000)
 val ColorWhite = Color(0xFFFFFFFF)
 
-// Number buttons
 val ColorDarkGray = Color(0xFF333333)
 val ColorDarkGrayPressed = Color(0xFF737373)
 
-// The three top buttons: AC, +/-, %
 val ColorLightGray = Color(0xFFA6A6A6)
 val ColorLightGrayPressed = Color(0xFFD9D9D9)
 
-// The five operator buttons: ÷, ×, −, +, =
 val ColorOrange = Color(0xFFFF9F0A)
 val ColorOrangePressed = Color(0xFFFCC781)
 
-// Scientific math buttons
 val ColorSciGray = Color(0xFF212121)
 val ColorSciGrayPressed = Color(0xFF4D4D4D)
 
-// The 'mr' button while activated: #808080 with black text
 val ColorMrActiveBg = Color(0xFF808080)
 val ColorMrActiveFg = ColorBlack
 val ColorMrActivePressedBg = Color(0xFFA6A6A6)
 
-// Other active scientific toggle buttons (e.g., 2nd)
 val ColorSciActiveBg = Color(0xFF808080)
 val ColorSciActiveFg = Color(0xFFFFFFFF)
 
-/**
- * Loads authentic Apple San Francisco (SF Pro) font from assets,
- * falling back gracefully to FontFamily.SansSerif if the asset is missing.
- */
 @Composable
 fun rememberSfFont(assetName: String): FontFamily {
     val context = LocalContext.current
@@ -118,12 +104,11 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Make sure the app is NOT displayed fullscreen - status bar and navigation bar visible like a regular app
         window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
         WindowCompat.setDecorFitsSystemWindows(window, true)
         val insetsController = WindowCompat.getInsetsController(window, window.decorView)
         insetsController.show(WindowInsetsCompat.Type.systemBars())
-        insetsController.isAppearanceLightStatusBars = false // Crisp white system icons (clock, signal, battery) on black
+        insetsController.isAppearanceLightStatusBars = false
         window.statusBarColor = android.graphics.Color.BLACK
         window.navigationBarColor = android.graphics.Color.BLACK
 
@@ -145,13 +130,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-/**
- * Universal iOS button component providing authentic Apple breath-like animation:
- * - Immediate touch-down (BUTTON_PRESS_DOWN_MS = 80ms)
- * - Soft, slower lingering breath-like fade out (BUTTON_RELEASE_FADE_MS = 480ms) on release
- * - Exactly unified across ALL buttons: numbers, scientific, AC, +/-, %, and operators
- * - No Android ripple (indication = null) so colors never flash or conflict
- */
 @Composable
 fun UniversalIosButton(
     modifier: Modifier = Modifier,
@@ -169,7 +147,6 @@ fun UniversalIosButton(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
-    // Always prioritize isPressed so EVERY button gives the identical tactile touch feedback
     val targetBg = when {
         isPressed && isActive && pressedActiveBg != null -> pressedActiveBg
         isPressed -> pressedBg
@@ -182,8 +159,6 @@ fun UniversalIosButton(
         else -> defaultFg
     }
 
-    // Authentic Apple breath-like color transition:
-    // Identical timing and easing across all button types
     val animatedBg by animateColorAsState(
         targetValue = targetBg,
         animationSpec = if (isPressed) {
@@ -210,7 +185,7 @@ fun UniversalIosButton(
             .background(animatedBg)
             .clickable(
                 interactionSource = interactionSource,
-                indication = null, // Disables Android ripple completely so all buttons share the identical iOS breath animation
+                indication = null,
                 onClick = onClick
             ),
         contentAlignment = Alignment.Center
@@ -219,15 +194,6 @@ fun UniversalIosButton(
     }
 }
 
-/**
- * Custom pixel-perfect Apple iOS +/- glyph rendered on Canvas.
- * Matches the slash angle, stroke weight, and placement of '+' and '−'
- * relative to the division slash from the iOS Calculator screenshot.
- *
- * The slash is drawn as a parallelogram whose top and bottom ends are cut
- * horizontally (like the slash in a percent sign '%') instead of perpendicular
- * to the stroke, so both ends have clean horizontal edges.
- */
 @Composable
 fun IosPlusMinusGlyph(
     color: Color,
@@ -241,37 +207,28 @@ fun IosPlusMinusGlyph(
         val H = size.height
         val center = Offset(size.width / 2f, size.height / 2f)
 
-        // 1. Diagonal slash with horizontal-cut ends (like '%'):
-        // Perpendicular stroke thickness:
         val strokeSlash = H * 0.088f
-        // Centerline endpoints of the slash (bottom-left to top-right):
         val slashStart = Offset(center.x - 0.380f * H, center.y + 0.500f * H)
         val slashEnd   = Offset(center.x + 0.280f * H, center.y - 0.500f * H)
 
-        // Horizontal half-width so the perpendicular thickness equals strokeSlash:
         val slashDx = slashEnd.x - slashStart.x
         val slashDy = slashEnd.y - slashStart.y
         val slashLen = kotlin.math.sqrt(slashDx * slashDx + slashDy * slashDy)
         val slashHalfW = strokeSlash * slashLen / (2f * kotlin.math.abs(slashDy))
 
-        // Parallelogram with horizontal top/bottom edges and slanted sides parallel to the slash:
         val slashPath = Path().apply {
-            moveTo(slashStart.x - slashHalfW, slashStart.y)  // bottom-left
-            lineTo(slashStart.x + slashHalfW, slashStart.y)  // bottom-right
-            lineTo(slashEnd.x   + slashHalfW, slashEnd.y)    // top-right
-            lineTo(slashEnd.x   - slashHalfW, slashEnd.y)    // top-left
+            moveTo(slashStart.x - slashHalfW, slashStart.y)
+            lineTo(slashStart.x + slashHalfW, slashStart.y)
+            lineTo(slashEnd.x   + slashHalfW, slashEnd.y)
+            lineTo(slashEnd.x   - slashHalfW, slashEnd.y)
             close()
         }
         drawPath(path = slashPath, color = color)
 
-        // 2. Stroke thickness of the '+' and '−' bars:
         val strokeBars = H * 0.092f
         val armLength = H * 0.309f
 
-        // 3. Top-left '+' sign:
-        // Position of the '+' center relative to canvas center:
         val plusCenter = Offset(center.x - 0.419f * H, center.y - 0.257f * H)
-        // Horizontal bar of '+':
         drawLine(
             color = color,
             start = Offset(plusCenter.x - armLength / 2f, plusCenter.y),
@@ -279,7 +236,6 @@ fun IosPlusMinusGlyph(
             strokeWidth = strokeBars,
             cap = StrokeCap.Square
         )
-        // Vertical bar of '+':
         drawLine(
             color = color,
             start = Offset(plusCenter.x, plusCenter.y - armLength / 2f),
@@ -288,10 +244,7 @@ fun IosPlusMinusGlyph(
             cap = StrokeCap.Square
         )
 
-        // 4. Bottom-right '−' (minus) sign:
-        // Position of the '−' center relative to canvas center:
         val minusCenter = Offset(center.x + 0.313f * H, center.y + 0.260f * H)
-        // Horizontal bar of '−':
         drawLine(
             color = color,
             start = Offset(minusCenter.x - armLength / 2f, minusCenter.y),
@@ -302,10 +255,6 @@ fun IosPlusMinusGlyph(
     }
 }
 
-/**
- * Decimal point dot exactly positioned like iPhone Calculator
- * (downward by +14.4% of button diameter, matching zero-dot-equal_447dbf0a.png).
- */
 @Composable
 fun IosDecimalDot(
     color: Color,
@@ -329,9 +278,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
     val activeOperator by vm.activeOperator.collectAsState()
     val haptic = LocalHapticFeedback.current
 
-    // Load authentic Apple SF Pro fonts with fallback
     val sfDisplayThin = rememberSfFont("sf_pro_display_thin.otf")
-    val sfDisplayLight = rememberSfFont("sf_pro_display_light.otf")
     val sfTextRegular = rememberSfFont("sf_pro_text_regular.otf")
 
     val clearLabel = if (displayValue != "0") "C" else "AC"
@@ -345,7 +292,6 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.Bottom
     ) {
-        // Display with swipe to delete and dynamic iOS font auto-scaling
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
@@ -362,18 +308,9 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
         ) {
             val density = LocalDensity.current
             val textMeasurer = rememberTextMeasurer()
-
-            // Available horizontal width for the text, leaving safe padding on each side
             val availableWidthPx = with(density) { (maxWidth - 12.dp).toPx() }
 
-            // Dynamic Apple iOS 4-Stage Portrait Font Scaling:
-            // Authentic Apple Thin font (FontWeight.W200) - NEVER bold at any stage.
-            // Stage 1 (1 to 6 digits, e.g. "0" to "888,888"): Font size dynamically calculated so "888,888" FILLS THE SCREEN HORIZONTALLY.
-            // Stage 2 (7 digits, e.g. "8,888,888"): Scales down to fit 7 digits horizontally edge-to-edge.
-            // Stage 3 (8 digits, e.g. "88,888,888"): Scales down to fit 8 digits horizontally edge-to-edge.
-            // Stage 4 (9 digits, e.g. "888,888,888" or scientific notation): Scales down to fit 9 digits horizontally edge-to-edge.
             val (optimalFontSize, optimalFont, optimalWeight) = remember(formattedDisplay, availableWidthPx) {
-                // Dynamically calculates the exact maximum font size in SP that fills availableWidthPx for a reference text on this specific device screen
                 fun findFitSp(refText: String): Float {
                     var low = 20f
                     var high = 180f
@@ -400,9 +337,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                 val stage3Sp = findFitSp("88,888,888")
                 val stage4Sp = findFitSp("888,888,888")
 
-                // Count digits (0-9)
                 val digitCount = formattedDisplay.count { it.isDigit() }
-
                 val baseSp = when {
                     digitCount <= 6 -> stage1Sp
                     digitCount == 7 -> stage2Sp
@@ -410,7 +345,6 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                     else -> stage4Sp
                 }
 
-                // Ensure any wide characters, decimals, negative signs, or scientific exponents never clip
                 var finalSp = baseSp
                 var layout = textMeasurer.measure(
                     text = formattedDisplay,
@@ -455,12 +389,11 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(spacing)
             ) {
-                // Row 1: AC/C, +/-, %, ÷ (Authentic Apple vector glyphs)
+                // Row 1: AC/C, +/-, %, ÷ (Portrait: size decreased by 15%)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(spacing)
                 ) {
-                    // AC/C button: increased to 42.sp to match exact visual height with % and +/-
                     UniversalIosButton(
                         defaultBg = ColorLightGray,
                         pressedBg = ColorLightGrayPressed,
@@ -471,10 +404,9 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                             vm.onClear()
                         }
                     ) { fg ->
-                        Text(text = clearLabel, color = fg, fontFamily = sfTextRegular, fontSize = 42.sp, fontWeight = FontWeight.Normal)
+                        Text(text = clearLabel, color = fg, fontFamily = sfTextRegular, fontSize = 35.7.sp, fontWeight = FontWeight.Normal)
                     }
 
-                    // Vector +/- glyph created directly from SF Pro %: matches exact visual height
                     UniversalIosButton(
                         defaultBg = ColorLightGray,
                         pressedBg = ColorLightGrayPressed,
@@ -485,10 +417,9 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                             vm.onToggleSign()
                         }
                     ) { fg ->
-                        IosPlusMinusGlyph(color = fg, glyphHeight = 29.dp)
+                        IosPlusMinusGlyph(color = fg, glyphHeight = 24.65.dp)
                     }
 
-                    // % button: rendered with genuine SF Pro font, matching exact height of AC and +/-
                     UniversalIosButton(
                         defaultBg = ColorLightGray,
                         pressedBg = ColorLightGrayPressed,
@@ -499,7 +430,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                             vm.onPercent()
                         }
                     ) { fg ->
-                        Text(text = "%", color = fg, fontFamily = sfTextRegular, fontSize = 42.sp, fontWeight = FontWeight.Normal)
+                        Text(text = "%", color = fg, fontFamily = sfTextRegular, fontSize = 35.7.sp, fontWeight = FontWeight.Normal)
                     }
 
                     UniversalIosButton(
@@ -639,12 +570,11 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                     }
                 }
 
-                // Row 5: 0 (spanning 2 columns, exactly aligned vertically with "." and "="), ., =
+                // Row 5: 0, ., =
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(spacing)
                 ) {
-                    // '0' button: height is mathematically identical to buttonSize, bottom edge perfectly aligned with '.' and '='
                     UniversalIosButton(
                         defaultBg = ColorDarkGray,
                         pressedBg = ColorDarkGrayPressed,
@@ -662,10 +592,8 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                         }
                     ) { fg ->
                         Row(modifier = Modifier.fillMaxSize()) {
-                            // Slot matching Column 1 width exactly: digit '0' is 100% horizontally aligned with '1'
                             Box(
-                                modifier = Modifier
-                                    .size(buttonSize),
+                                modifier = Modifier.size(buttonSize),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(text = "0", color = fg, fontFamily = sfTextRegular, fontSize = 46.sp, fontWeight = FontWeight.Normal)
@@ -674,7 +602,6 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                         }
                     }
 
-                    // Decimal '.' button: dot placed at authentic Apple downward baseline (+14.4% below center)
                     UniversalIosButton(
                         defaultBg = ColorDarkGray,
                         pressedBg = ColorDarkGrayPressed,
@@ -714,11 +641,9 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
     val is2nd by vm.is2nd.collectAsState()
     val haptic = LocalHapticFeedback.current
 
-    // Load authentic Apple SF Pro fonts with fallback
     val sfDisplayThin = rememberSfFont("sf_pro_display_thin.otf")
     val sfTextRegular = rememberSfFont("sf_pro_text_regular.otf")
 
-    // Local memory presence state for 'mr' highlight: active on m+/m-, cleared on mc
     var hasMemory by remember { mutableStateOf(false) }
 
     val clearLabel = if (displayValue != "0") "C" else "AC"
@@ -731,7 +656,7 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
             .navigationBarsPadding()
             .padding(horizontal = 16.dp, vertical = 6.dp)
     ) {
-        // Landscape Display with Rad/Deg indicator
+        // Landscape Display with Rad/Deg indicator and upward offset shift (original button sizes restored)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -768,12 +693,12 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 12.dp)
+                    .offset(y = (-4).dp) // Shifted up slightly (~4%)
             )
         }
 
         Spacer(modifier = Modifier.height(6.dp))
 
-        // 10 column grid rows for scientific landscape
         val radButtonLabel = if (isRadMode) "Deg" else "Rad"
 
         val sciCols = listOf(
@@ -784,7 +709,7 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
             listOf(radButtonLabel, if (is2nd) "sinh⁻¹" else "sinh", if (is2nd) "cosh⁻¹" else "cosh", if (is2nd) "tanh⁻¹" else "tanh", "π", "Rand", "0", ".", "=")
         )
 
-        // Row 1
+        // Row 1 (Landscape button sizes restored to original 16.dp and 23.sp)
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             sciCols[0].forEachIndexed { i, label ->
                 val isOp = i == 9
@@ -798,7 +723,6 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                 val pressedBg = if (isOp) ColorOrangePressed else if (isTopLight) ColorLightGrayPressed else ColorSciGrayPressed
                 val defaultFg = if (isTopLight) ColorBlack else ColorWhite
 
-                // Real iOS: when 'mr' is activated, it displays darker gray #808080 with black text
                 val activeBgColor = if (isMr) ColorMrActiveBg else if (isOp) ColorWhite else ColorSciActiveBg
                 val activeFgColor = if (isMr) ColorMrActiveFg else if (isOp) ColorOrange else ColorSciActiveFg
                 val pressedActiveBgColor = if (isMr) ColorMrActivePressedBg else null
@@ -1000,10 +924,8 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
         }
         Spacer(modifier = Modifier.height(5.dp))
 
-        // Row 5: 6 sci buttons, 0 (double width aligned directly under "1"), ., =
-        // Unified styling: every single button shares height(48.dp) with consistent landscape capsule shape
+        // Row 5
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            // Rad/Deg button
             UniversalIosButton(
                 defaultBg = ColorSciGray,
                 pressedBg = ColorSciGrayPressed,
@@ -1038,7 +960,6 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                 }
             }
 
-            // 0 spanning 2 weight: left section matches column 7 width exactly, centering '0' directly under '1'
             UniversalIosButton(
                 defaultBg = ColorDarkGray,
                 pressedBg = ColorDarkGrayPressed,
@@ -1063,7 +984,6 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                 }
             }
 
-            // Decimal button: Unified with landscape row matching height 48.dp
             UniversalIosButton(
                 defaultBg = ColorDarkGray,
                 pressedBg = ColorDarkGrayPressed,
@@ -1077,7 +997,6 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                 IosDecimalDot(color = fg, modifier = Modifier.fillMaxSize())
             }
 
-            // Equals button: Unified with landscape row matching height 48.dp
             UniversalIosButton(
                 defaultBg = ColorOrange,
                 pressedBg = ColorOrangePressed,
@@ -1094,14 +1013,9 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
     }
 }
 
-/**
- * Format portrait display to strictly enforce iOS 9-digit max display with HALF_UP rounding and commas.
- * Numbers with > 9 digits or magnitude >= 1e9 format as authentic iOS exponential notation (e.g. 8e9 or 8.888889e9).
- */
 fun formatPortraitDisplay(value: String): String {
     if (value == "Error") return "Error"
 
-    // While user is actively typing a decimal e.g. "3." or "3.0"
     if ((value.endsWith(".") || (value.contains(".") && value.endsWith("0"))) && !value.contains("e") && !value.contains("E")) {
         val parts = value.split(".")
         val isNeg = parts[0].startsWith("-")
@@ -1116,7 +1030,6 @@ fun formatPortraitDisplay(value: String): String {
 
     val absNum = abs(num)
 
-    // Switch to scientific notation if magnitude >= 1e9 or very small (< 1e-8)
     if (absNum >= 1e9 || (absNum < 1e-8 && absNum > 0.0)) {
         val expStr = String.format(Locale.US, "%.6e", num)
             .replace("+", "")
@@ -1153,14 +1066,9 @@ fun formatPortraitDisplay(value: String): String {
     }
 }
 
-/**
- * Format landscape display to allow up to 16 digits of precision with commas.
- * Numbers with > 16 digits or magnitude >= 1e16 format as authentic iOS exponential notation with lowercase 'e'.
- */
 fun formatLandscapeDisplay(value: String): String {
     if (value == "Error") return "Error"
 
-    // While user is actively typing a decimal e.g. "3." or "3.0"
     if ((value.endsWith(".") || (value.contains(".") && value.endsWith("0"))) && !value.contains("e") && !value.contains("E")) {
         val parts = value.split(".")
         val isNeg = parts[0].startsWith("-")
@@ -1175,7 +1083,6 @@ fun formatLandscapeDisplay(value: String): String {
 
     val absNum = abs(num)
 
-    // Landscape mode: up to 16 significant digits. Only switch to scientific notation if >= 1e16 or < 1e-8
     if (absNum >= 1e16 || (absNum < 1e-8 && absNum > 0.0)) {
         val expStr = String.format(Locale.US, "%.10e", num)
             .replace("+", "")
