@@ -1016,13 +1016,14 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
 fun formatPortraitDisplay(value: String): String {
     if (value == "Error") return "Error"
 
-    if ((value.endsWith(".") || (value.contains(".") && value.endsWith("0"))) && !value.contains("e") && !value.contains("E")) {
+    // While user is actively typing a decimal ending with a dot e.g. "3."
+    if (value.endsWith(".") && !value.contains("e") && !value.contains("E")) {
         val parts = value.split(".")
         val isNeg = parts[0].startsWith("-")
         val cleanInt = if (isNeg) parts[0].substring(1) else parts[0]
         val formattedInt = cleanInt.reversed().chunked(3).joinToString(",").reversed()
         val signedInt = if (isNeg) "-$formattedInt" else formattedInt
-        return "$signedInt.${parts[1]}"
+        return "$signedInt."
     }
 
     val num = value.toDoubleOrNull() ?: return value
@@ -1069,13 +1070,14 @@ fun formatPortraitDisplay(value: String): String {
 fun formatLandscapeDisplay(value: String): String {
     if (value == "Error") return "Error"
 
-    if ((value.endsWith(".") || (value.contains(".") && value.endsWith("0"))) && !value.contains("e") && !value.contains("E")) {
+    // While user is actively typing a decimal ending with a dot e.g. "3."
+    if (value.endsWith(".") && !value.contains("e") && !value.contains("E")) {
         val parts = value.split(".")
         val isNeg = parts[0].startsWith("-")
         val cleanInt = if (isNeg) parts[0].substring(1) else parts[0]
         val formattedInt = cleanInt.reversed().chunked(3).joinToString(",").reversed()
         val signedInt = if (isNeg) "-$formattedInt" else formattedInt
-        return "$signedInt.${parts[1]}"
+        return "$signedInt."
     }
 
     val num = value.toDoubleOrNull() ?: return value
