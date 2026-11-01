@@ -366,68 +366,60 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
             // Available horizontal width for the text, leaving 4.dp padding on each side
             val availableWidthPx = with(density) { (maxWidth - 8.dp).toPx() }
 
-            // Dynamic Apple iOS font scaling:
-            // Starts at 98.sp (Thin) for short numbers (1-6 digits).
-            // For longer numbers like 21.9911486 or 123,456,789, it scales to be big enough
-            // to fill the screen horizontally without clipping.
-            // For scientific notation with 'e' (e.g. 1.23457e8 or -1.23457e-12), it scales down
-            // smoothly to fit on one line while remaining as large as possible.
+            // Apple iOS 4-Stage Portrait Font Scaling:
+            // Stage 1 - 1 to 6 digits (e.g. "0" to "888,888"): Largest size (94sp, Thin W200), filling screen horizontally on 888,888
+            // Stage 2 - 7 digits (e.g. "8,888,888"): Scales down slightly (82sp, Light W300) to fit
+            // Stage 3 - 8 digits (e.g. "88,888,888"): Scales down slightly more (72sp, Light W300) to fit
+            // Stage 4 - 9 digits (e.g. "888,888,888" or scientific notation like "8.888889e9" / "8e9"): Scales down to fit 9 digits (62sp, Light W300)
             val (optimalFontSize, optimalFont, optimalWeight) = remember(formattedDisplay, availableWidthPx) {
-                fun getStyleForSize(sizeSp: Float): Pair<FontFamily, FontWeight> = when {
-                    sizeSp >= 80f -> sfDisplayThin to FontWeight.W200
-                    sizeSp >= 56f -> sfDisplayLight to FontWeight.W300
-                    else -> sfDisplayLight to FontWeight.W400
-                }
-
-                val maxSp = 98f
-                val minSp = 34f
-
-                val (initialFont, initialWeight) = getStyleForSize(maxSp)
-                val testLayout = textMeasurer.measure(
-                    text = formattedDisplay,
-                    style = TextStyle(
-                        fontFamily = initialFont,
-                        fontWeight = initialWeight,
-                        fontSize = maxSp.sp
-                    ),
-                    maxLines = 1
-                )
-
-                val measuredWidth = testLayout.size.width.toFloat()
-                if (measuredWidth <= availableWidthPx || measuredWidth <= 0f || availableWidthPx <= 0f) {
-                    Triple(maxSp.sp, initialFont, initialWeight)
-                } else {
-                    // Linearly scale font size so text fills the screen horizontally
-                    var targetSp = (maxSp * (availableWidthPx / measuredWidth)).coerceIn(minSp, maxSp)
-                    var (font, weight) = getStyleForSize(targetSp)
-
-                    var finalLayout = textMeasurer.measure(
-                        text = formattedDisplay,
-                        style = TextStyle(
-                            fontFamily = font,
-                            fontWeight = weight,
-                            fontSize = targetSp.sp
-                        ),
-                        maxLines = 1
-                    )
-                    // If slight kerning causes slight overflow, step down by 1sp until it fits
-                    while (finalLayout.size.width > availableWidthPx && targetSp > minSp) {
-                        targetSp -= 1f
-                        val updated = getStyleForSize(targetSp)
-                        font = updated.first
-                        weight = updated.second
-                        finalLayout = textMeasurer.measure(
-                            text = formattedDisplay,
-                            style = TextStyle(
-                                fontFamily = font,
-                                fontWeight = weight,
-                                fontSize = targetSp.sp
-                            ),
+                // Find maximum fitting size for a given reference text within availableWidthPx
+                fun findFittingSp(text: String, startSp: Float, minSp: Float, font: FontFamily, weight: FontWeight): Float {
+                    var currentSp = startSp
+                    while (currentSp > minSp) {
+                        val layout = textMeasurer.measure(
+                            text = text,
+                            style = TextStyle(fontFamily = font, fontWeight = weight, fontSize = currentSp.sp),
                             maxLines = 1
                         )
+                        if (layout.size.width <= availableWidthPx) break
+                        currentSp -= 1f
                     }
-                    Triple(targetSp.sp, font, weight)
+                    return currentSp
                 }
+
+                val stage1Sp = findFittingSp("888,888", 94f, 70f, sfDisplayThin, FontWeight.W200)
+                val stage2Sp = findFittingSp("8,888,888", 82f, 58f, sfDisplayLight, FontWeight.W300)
+                val stage3Sp = findFittingSp("88,888,888", 72f, 48f, sfDisplayLight, FontWeight.W300)
+                val stage4Sp = findFittingSp("888,888,888", 62f, 38f, sfDisplayLight, FontWeight.W300)
+
+                // Count digits (0-9)
+                val isExp = formattedDisplay.contains("e") || formattedDisplay.contains("E")
+                val digitCount = if (isExp) 9 else formattedDisplay.count { it.isDigit() }
+
+                val (baseSp, font, weight) = when {
+                    digitCount <= 6 -> Triple(stage1Sp, sfDisplayThin, FontWeight.W200)
+                    digitCount == 7 -> Triple(stage2Sp, sfDisplayLight, FontWeight.W300)
+                    digitCount == 8 -> Triple(stage3Sp, sfDisplayLight, FontWeight.W300)
+                    else -> Triple(stage4Sp, sfDisplayLight, FontWeight.W300)
+                }
+
+                // Guarantee that the actual formatted string (including sign, e-exponent, etc.) does not clip
+                var finalSp = baseSp
+                var layout = textMeasurer.measure(
+                    text = formattedDisplay,
+                    style = TextStyle(fontFamily = font, fontWeight = weight, fontSize = finalSp.sp),
+                    maxLines = 1
+                )
+                while (layout.size.width > availableWidthPx && finalSp > 24f) {
+                    finalSp -= 1f
+                    layout = textMeasurer.measure(
+                        text = formattedDisplay,
+                        style = TextStyle(fontFamily = font, fontWeight = weight, fontSize = finalSp.sp),
+                        maxLines = 1
+                    )
+                }
+
+                Triple(finalSp.sp, font, weight)
             }
 
             Text(
@@ -533,7 +525,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                             modifier = Modifier.size(buttonSize),
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                vm.onDigit(digit)
+                                vm.onDigit(digit, isLandscape = false)
                             }
                         ) { fg ->
                             Text(text = digit, color = fg, fontFamily = sfTextRegular, fontSize = 46.sp, fontWeight = FontWeight.Normal)
@@ -570,7 +562,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                             modifier = Modifier.size(buttonSize),
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                vm.onDigit(digit)
+                                vm.onDigit(digit, isLandscape = false)
                             }
                         ) { fg ->
                             Text(text = digit, color = fg, fontFamily = sfTextRegular, fontSize = 46.sp, fontWeight = FontWeight.Normal)
@@ -607,7 +599,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                             modifier = Modifier.size(buttonSize),
                             onClick = {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                vm.onDigit(digit)
+                                vm.onDigit(digit, isLandscape = false)
                             }
                         ) { fg ->
                             Text(text = digit, color = fg, fontFamily = sfTextRegular, fontSize = 46.sp, fontWeight = FontWeight.Normal)
@@ -647,7 +639,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                             .height(buttonSize),
                         onClick = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            vm.onDigit("0")
+                            vm.onDigit("0", isLandscape = false)
                         }
                     ) { fg ->
                         Row(modifier = Modifier.fillMaxSize()) {
@@ -881,7 +873,7 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                     onClick = {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         when {
-                            isDigit -> vm.onDigit(label)
+                            isDigit -> vm.onDigit(label, isLandscape = true)
                             isOp -> vm.onOperator("×")
                             label == "2ⁿᵈ" -> vm.toggle2nd()
                             isPowerOp -> vm.onOperator(label)
@@ -926,7 +918,7 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                     onClick = {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         when {
-                            isDigit -> vm.onDigit(label)
+                            isDigit -> vm.onDigit(label, isLandscape = true)
                             isOp -> vm.onOperator("−")
                             isRootOp -> vm.onOperator(label)
                             else -> vm.onScientific(label)
@@ -970,7 +962,7 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                     onClick = {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         when {
-                            isDigit -> vm.onDigit(label)
+                            isDigit -> vm.onDigit(label, isLandscape = true)
                             isOp -> vm.onOperator("+")
                             isEEOp -> vm.onOperator("EE")
                             else -> vm.onScientific(label)
@@ -1035,7 +1027,7 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                 modifier = Modifier.weight(2f).height(48.dp),
                 onClick = {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    vm.onDigit("0")
+                    vm.onDigit("0", isLandscape = true)
                 }
             ) { fg ->
                 Row(modifier = Modifier.fillMaxSize()) {
@@ -1085,14 +1077,43 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
 
 /**
  * Format portrait display to strictly enforce iOS 9-digit max display with HALF_UP rounding and commas.
- * For example: π × 7 evaluates to 21.9911486 (9 significant digits) in portrait mode.
+ * Numbers with > 9 digits or magnitude >= 1e9 format as authentic iOS exponential notation (e.g. 8e9 or 8.888889e9).
  */
 fun formatPortraitDisplay(value: String): String {
     if (value == "Error") return "Error"
-    if (value.contains("e") || value.contains("E")) return value
+    if (value.contains("e") || value.contains("E")) {
+        val expStr = value.replace("+", "").replace("e0", "e").replace("e-0", "e-").replace("E0", "e").replace("E-0", "e-").replace("E", "e")
+        val eIndex = expStr.indexOf('e')
+        return if (eIndex != -1) {
+            val mantissa = expStr.substring(0, eIndex)
+            val exponent = expStr.substring(eIndex)
+            val cleanMantissa = if (mantissa.contains('.')) mantissa.trimEnd('0').trimEnd('.') else mantissa
+            cleanMantissa + exponent
+        } else expStr
+    }
 
     val num = value.toDoubleOrNull() ?: return value
     if (num == 0.0) return if (value.startsWith("-")) "-0" else "0"
+
+    val absNum = abs(num)
+    val digitsOnly = value.replace(Regex("[^0-9]"), "")
+
+    // Switch to scientific notation if magnitude >= 1e9 or very small, OR if digit count exceeds 9
+    if (absNum >= 1e9 || (absNum < 1e-8 && absNum > 0.0) || digitsOnly.length > 9) {
+        val expStr = String.format(Locale.US, "%.6e", num)
+            .replace("+", "")
+            .replace("e0", "e")
+            .replace("e-0", "e-")
+        val eIndex = expStr.indexOf('e')
+        return if (eIndex != -1) {
+            val mantissa = expStr.substring(0, eIndex)
+            val exponent = expStr.substring(eIndex)
+            val cleanMantissa = if (mantissa.contains('.')) mantissa.trimEnd('0').trimEnd('.') else mantissa
+            cleanMantissa + exponent
+        } else {
+            expStr
+        }
+    }
 
     // While user is actively typing a decimal or trailing zeros e.g. "3." or "3.0"
     if (value.endsWith(".") || (value.contains(".") && value.endsWith("0"))) {
@@ -1105,23 +1126,15 @@ fun formatPortraitDisplay(value: String): String {
     }
 
     return try {
-        val absNum = abs(num)
-        if (absNum >= 1e9 || (absNum < 1e-8 && absNum > 0.0)) {
-            // Numbers exceeding 9 digits switch to scientific notation
-            val expStr = String.format(Locale.US, "%.5e", num)
-            expStr.replace("+", "").replace("e0", "e").replace("e-0", "e-")
-        } else {
-            // Exactly 9 significant digits with HALF_UP rounding (iOS portrait precision)
-            val mc = MathContext(9, RoundingMode.HALF_UP)
-            val bd = BigDecimal(value, mc)
-            val plain = bd.stripTrailingZeros().toPlainString()
-            val parts = plain.split(".")
-            val isNeg = parts[0].startsWith("-")
-            val cleanInt = if (isNeg) parts[0].substring(1) else parts[0]
-            val formattedInt = cleanInt.reversed().chunked(3).joinToString(",").reversed()
-            val signedInt = if (isNeg) "-$formattedInt" else formattedInt
-            if (parts.size > 1) "$signedInt.${parts[1]}" else signedInt
-        }
+        val mc = MathContext(9, RoundingMode.HALF_UP)
+        val bd = BigDecimal(value, mc)
+        val plain = bd.stripTrailingZeros().toPlainString()
+        val parts = plain.split(".")
+        val isNeg = parts[0].startsWith("-")
+        val cleanInt = if (isNeg) parts[0].substring(1) else parts[0]
+        val formattedInt = cleanInt.reversed().chunked(3).joinToString(",").reversed()
+        val signedInt = if (isNeg) "-$formattedInt" else formattedInt
+        if (parts.size > 1) "$signedInt.${parts[1]}" else signedInt
     } catch (e: Exception) {
         val parts = value.split(".")
         val isNeg = parts[0].startsWith("-")
@@ -1138,10 +1151,38 @@ fun formatPortraitDisplay(value: String): String {
  */
 fun formatLandscapeDisplay(value: String): String {
     if (value == "Error") return "Error"
-    if (value.contains("e") || value.contains("E")) return value
+    if (value.contains("e") || value.contains("E")) {
+        val expStr = value.replace("+", "").replace("e0", "e").replace("e-0", "e-").replace("E0", "e").replace("E-0", "e-").replace("E", "e")
+        val eIndex = expStr.indexOf('e')
+        return if (eIndex != -1) {
+            val mantissa = expStr.substring(0, eIndex)
+            val exponent = expStr.substring(eIndex)
+            val cleanMantissa = if (mantissa.contains('.')) mantissa.trimEnd('0').trimEnd('.') else mantissa
+            cleanMantissa + exponent
+        } else expStr
+    }
 
     val num = value.toDoubleOrNull() ?: return value
     if (num == 0.0) return if (value.startsWith("-")) "-0" else "0"
+
+    val absNum = abs(num)
+    val digitsOnly = value.replace(Regex("[^0-9]"), "")
+
+    if (absNum >= 1e16 || (absNum < 1e-8 && absNum > 0.0) || digitsOnly.length > 16) {
+        val expStr = String.format(Locale.US, "%.10e", num)
+            .replace("+", "")
+            .replace("e0", "e")
+            .replace("e-0", "e-")
+        val eIndex = expStr.indexOf('e')
+        return if (eIndex != -1) {
+            val mantissa = expStr.substring(0, eIndex)
+            val exponent = expStr.substring(eIndex)
+            val cleanMantissa = if (mantissa.contains('.')) mantissa.trimEnd('0').trimEnd('.') else mantissa
+            cleanMantissa + exponent
+        } else {
+            expStr
+        }
+    }
 
     if (value.endsWith(".") || (value.contains(".") && value.endsWith("0"))) {
         val parts = value.split(".")
@@ -1153,21 +1194,15 @@ fun formatLandscapeDisplay(value: String): String {
     }
 
     return try {
-        val absNum = abs(num)
-        if (absNum >= 1e16 || (absNum < 1e-8 && absNum > 0.0)) {
-            val expStr = String.format(Locale.US, "%.10e", num)
-            expStr.replace("+", "").replace("e0", "e").replace("e-0", "e-")
-        } else {
-            val mc = MathContext(16, RoundingMode.HALF_UP)
-            val bd = BigDecimal(value, mc)
-            val plain = bd.stripTrailingZeros().toPlainString()
-            val parts = plain.split(".")
-            val isNeg = parts[0].startsWith("-")
-            val cleanInt = if (isNeg) parts[0].substring(1) else parts[0]
-            val formattedInt = cleanInt.reversed().chunked(3).joinToString(",").reversed()
-            val signedInt = if (isNeg) "-$formattedInt" else formattedInt
-            if (parts.size > 1) "$signedInt.${parts[1]}" else signedInt
-        }
+        val mc = MathContext(16, RoundingMode.HALF_UP)
+        val bd = BigDecimal(value, mc)
+        val plain = bd.stripTrailingZeros().toPlainString()
+        val parts = plain.split(".")
+        val isNeg = parts[0].startsWith("-")
+        val cleanInt = if (isNeg) parts[0].substring(1) else parts[0]
+        val formattedInt = cleanInt.reversed().chunked(3).joinToString(",").reversed()
+        val signedInt = if (isNeg) "-$formattedInt" else formattedInt
+        if (parts.size > 1) "$signedInt.${parts[1]}" else signedInt
     } catch (e: Exception) {
         val parts = value.split(".")
         val isNeg = parts[0].startsWith("-")
