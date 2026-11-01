@@ -28,6 +28,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -35,9 +36,12 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
@@ -216,69 +220,85 @@ fun UniversalIosButton(
 }
 
 /**
- * Pixel-perfect Apple iOS Calculator '+/-' glyph vector
- * Created directly from SF Pro's '%' glyph geometry:
- * Uses the exact same '/' (slash) diagonal from SF Pro's '%',
- * and replaces the two circles ('0 0') of '%' with '+' and '−' of corresponding size.
- * Matches the exact visual height of the 'AC' and '%' buttons.
+ * Custom pixel-perfect Apple iOS +/- glyph rendered on Canvas.
+ * Matches the slash angle, stroke weight, and placement of '+' and '−'
+ * relative to the division slash from the iOS Calculator screenshot.
+ *
+ * The slash is drawn as a parallelogram whose top and bottom ends are cut
+ * horizontally (like the slash in a percent sign '%') instead of perpendicular
+ * to the stroke, so both ends have clean horizontal edges.
  */
 @Composable
 fun IosPlusMinusGlyph(
     color: Color,
-    glyphHeight: androidx.compose.ui.unit.Dp = 29.dp,
+    glyphHeight: androidx.compose.ui.unit.Dp = 29.0.dp,
     modifier: Modifier = Modifier
 ) {
-    Box(
-        modifier = modifier
-            .height(glyphHeight)
-            .width(glyphHeight * 1.12f),
-        contentAlignment = Alignment.Center
+    val glyphWidth = glyphHeight * 1.120f
+    Canvas(
+        modifier = modifier.size(width = glyphWidth, height = glyphHeight)
     ) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val H = size.height
-            val strokeSlash = H * 0.088f
-            val strokeBars = H * 0.076f
+        val H = size.height
+        val center = Offset(size.width / 2f, size.height / 2f)
 
-            // Central diagonal slash from bottom-left to top-right (matching SF Pro %)
-            drawLine(
-                color = color,
-                start = Offset(center.x - 0.38f * H, center.y + 0.50f * H),
-                end = Offset(center.x + 0.28f * H, center.y - 0.50f * H),
-                strokeWidth = strokeSlash,
-                cap = StrokeCap.Square
-            )
+        // 1. Diagonal slash with horizontal-cut ends (like '%'):
+        // Perpendicular stroke thickness:
+        val strokeSlash = H * 0.088f
+        // Centerline endpoints of the slash (bottom-left to top-right):
+        val slashStart = Offset(center.x - 0.380f * H, center.y + 0.500f * H)
+        val slashEnd   = Offset(center.x + 0.280f * H, center.y - 0.500f * H)
 
-            // Top-left '+' sign (replacing top '0' of % with matching bounds)
-            val plusCx = center.x - 0.34f * H
-            val plusCy = center.y - 0.23f * H
-            val plusHalf = (H * 0.38f) / 2f
-            drawLine(
-                color = color,
-                start = Offset(plusCx - plusHalf, plusCy),
-                end = Offset(plusCx + plusHalf, plusCy),
-                strokeWidth = strokeBars,
-                cap = StrokeCap.Square
-            )
-            drawLine(
-                color = color,
-                start = Offset(plusCx, plusCy - plusHalf),
-                end = Offset(plusCx, plusCy + plusHalf),
-                strokeWidth = strokeBars,
-                cap = StrokeCap.Square
-            )
+        // Horizontal half-width so the perpendicular thickness equals strokeSlash:
+        val slashDx = slashEnd.x - slashStart.x
+        val slashDy = slashEnd.y - slashStart.y
+        val slashLen = kotlin.math.sqrt(slashDx * slashDx + slashDy * slashDy)
+        val slashHalfW = strokeSlash * slashLen / (2f * kotlin.math.abs(slashDy))
 
-            // Bottom-right '−' sign (replacing bottom '0' of % with matching bounds)
-            val minusCx = center.x + 0.30f * H
-            val minusCy = center.y + 0.26f * H
-            val minusHalf = (H * 0.38f) / 2f
-            drawLine(
-                color = color,
-                start = Offset(minusCx - minusHalf, minusCy),
-                end = Offset(minusCx + minusHalf, minusCy),
-                strokeWidth = strokeBars,
-                cap = StrokeCap.Square
-            )
+        // Parallelogram with horizontal top/bottom edges and slanted sides parallel to the slash:
+        val slashPath = Path().apply {
+            moveTo(slashStart.x - slashHalfW, slashStart.y)  // bottom-left
+            lineTo(slashStart.x + slashHalfW, slashStart.y)  // bottom-right
+            lineTo(slashEnd.x   + slashHalfW, slashEnd.y)    // top-right
+            lineTo(slashEnd.x   - slashHalfW, slashEnd.y)    // top-left
+            close()
         }
+        drawPath(path = slashPath, color = color)
+
+        // 2. Stroke thickness of the '+' and '−' bars:
+        val strokeBars = H * 0.092f
+        val armLength = H * 0.309f
+
+        // 3. Top-left '+' sign:
+        // Position of the '+' center relative to canvas center:
+        val plusCenter = Offset(center.x - 0.419f * H, center.y - 0.257f * H)
+        // Horizontal bar of '+':
+        drawLine(
+            color = color,
+            start = Offset(plusCenter.x - armLength / 2f, plusCenter.y),
+            end = Offset(plusCenter.x + armLength / 2f, plusCenter.y),
+            strokeWidth = strokeBars,
+            cap = StrokeCap.Square
+        )
+        // Vertical bar of '+':
+        drawLine(
+            color = color,
+            start = Offset(plusCenter.x, plusCenter.y - armLength / 2f),
+            end = Offset(plusCenter.x, plusCenter.y + armLength / 2f),
+            strokeWidth = strokeBars,
+            cap = StrokeCap.Square
+        )
+
+        // 4. Bottom-right '−' (minus) sign:
+        // Position of the '−' center relative to canvas center:
+        val minusCenter = Offset(center.x + 0.313f * H, center.y + 0.260f * H)
+        // Horizontal bar of '−':
+        drawLine(
+            color = color,
+            start = Offset(minusCenter.x - armLength / 2f, minusCenter.y),
+            end = Offset(minusCenter.x + armLength / 2f, minusCenter.y),
+            strokeWidth = strokeBars,
+            cap = StrokeCap.Square
+        )
     }
 }
 
@@ -325,8 +345,8 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.Bottom
     ) {
-        // Display with swipe to delete
-        Box(
+        // Display with swipe to delete and dynamic iOS font auto-scaling
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
@@ -340,26 +360,88 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                 },
             contentAlignment = Alignment.BottomEnd
         ) {
-            val (fontSize, displayFont) = when {
-                formattedDisplay.length <= 5 -> 100.sp to sfDisplayThin
-                formattedDisplay.length == 6 -> 90.sp to sfDisplayThin
-                formattedDisplay.length == 7 -> 80.sp to sfDisplayLight
-                formattedDisplay.length == 8 -> 70.sp to sfDisplayLight
-                formattedDisplay.length == 9 -> 58.sp to sfDisplayLight
-                else -> 48.sp to sfDisplayLight
+            val density = LocalDensity.current
+            val textMeasurer = rememberTextMeasurer()
+
+            // Available horizontal width for the text, leaving 4.dp padding on each side
+            val availableWidthPx = with(density) { (maxWidth - 8.dp).toPx() }
+
+            // Dynamic Apple iOS font scaling:
+            // Starts at 98.sp (Thin) for short numbers (1-6 digits).
+            // For longer numbers like 21.9911486 or 123,456,789, it scales to be big enough
+            // to fill the screen horizontally without clipping.
+            // For scientific notation with 'e' (e.g. 1.23457e8 or -1.23457e-12), it scales down
+            // smoothly to fit on one line while remaining as large as possible.
+            val (optimalFontSize, optimalFont, optimalWeight) = remember(formattedDisplay, availableWidthPx) {
+                fun getStyleForSize(sizeSp: Float): Pair<FontFamily, FontWeight> = when {
+                    sizeSp >= 80f -> sfDisplayThin to FontWeight.W200
+                    sizeSp >= 56f -> sfDisplayLight to FontWeight.W300
+                    else -> sfDisplayLight to FontWeight.W400
+                }
+
+                val maxSp = 98f
+                val minSp = 34f
+
+                val (initialFont, initialWeight) = getStyleForSize(maxSp)
+                val testLayout = textMeasurer.measure(
+                    text = formattedDisplay,
+                    style = TextStyle(
+                        fontFamily = initialFont,
+                        fontWeight = initialWeight,
+                        fontSize = maxSp.sp
+                    ),
+                    maxLines = 1
+                )
+
+                val measuredWidth = testLayout.size.width.toFloat()
+                if (measuredWidth <= availableWidthPx || measuredWidth <= 0f || availableWidthPx <= 0f) {
+                    Triple(maxSp.sp, initialFont, initialWeight)
+                } else {
+                    // Linearly scale font size so text fills the screen horizontally
+                    var targetSp = (maxSp * (availableWidthPx / measuredWidth)).coerceIn(minSp, maxSp)
+                    var (font, weight) = getStyleForSize(targetSp)
+
+                    var finalLayout = textMeasurer.measure(
+                        text = formattedDisplay,
+                        style = TextStyle(
+                            fontFamily = font,
+                            fontWeight = weight,
+                            fontSize = targetSp.sp
+                        ),
+                        maxLines = 1
+                    )
+                    // If slight kerning causes slight overflow, step down by 1sp until it fits
+                    while (finalLayout.size.width > availableWidthPx && targetSp > minSp) {
+                        targetSp -= 1f
+                        val updated = getStyleForSize(targetSp)
+                        font = updated.first
+                        weight = updated.second
+                        finalLayout = textMeasurer.measure(
+                            text = formattedDisplay,
+                            style = TextStyle(
+                                fontFamily = font,
+                                fontWeight = weight,
+                                fontSize = targetSp.sp
+                            ),
+                            maxLines = 1
+                        )
+                    }
+                    Triple(targetSp.sp, font, weight)
+                }
             }
 
             Text(
                 text = formattedDisplay,
                 color = ColorWhite,
-                fontSize = fontSize,
-                fontFamily = displayFont,
-                fontWeight = FontWeight.W200,
+                fontSize = optimalFontSize,
+                fontFamily = optimalFont,
+                fontWeight = optimalWeight,
                 textAlign = TextAlign.End,
                 maxLines = 1,
+                softWrap = false,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                    .padding(horizontal = 4.dp, vertical = 4.dp)
             )
         }
 
@@ -374,7 +456,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(spacing)
             ) {
-                // Row 1: AC/C, +/-, %, ÷ (Exact equal visual heights)
+                // Row 1: AC/C, +/-, %, ÷ (Authentic Apple vector glyphs)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(spacing)
