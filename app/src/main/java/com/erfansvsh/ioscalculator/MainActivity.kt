@@ -385,7 +385,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                             style = TextStyle(fontFamily = sfDisplayThin, fontWeight = FontWeight.W200, fontSize = mid.sp),
                             maxLines = 1
                         )
-                        if (layout.size.width <= availableWidthPx) {
+                        if (layout.size.width.toFloat() <= availableWidthPx) {
                             best = mid
                             low = mid
                         } else {
@@ -417,7 +417,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                     style = TextStyle(fontFamily = sfDisplayThin, fontWeight = FontWeight.W200, fontSize = finalSp.sp),
                     maxLines = 1
                 )
-                while (layout.size.width > availableWidthPx && finalSp > 18f) {
+                while (layout.size.width.toFloat() > availableWidthPx && finalSp > 18f) {
                     finalSp -= 1f
                     layout = textMeasurer.measure(
                         text = formattedDisplay,
@@ -892,7 +892,7 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                     onClick = {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         when {
-                            isDigit -> vm.onDigit(label, isLandscape = true)
+                            isDigit -> vm.onDigit(label)
                             isOp -> vm.onOperator("×")
                             label == "2ⁿᵈ" -> vm.toggle2nd()
                             isPowerOp -> vm.onOperator(label)
@@ -937,7 +937,7 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                     onClick = {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         when {
-                            isDigit -> vm.onDigit(label, isLandscape = true)
+                            isDigit -> vm.onDigit(label)
                             isOp -> vm.onOperator("−")
                             isRootOp -> vm.onOperator(label)
                             else -> vm.onScientific(label)
@@ -981,7 +981,7 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                     onClick = {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         when {
-                            isDigit -> vm.onDigit(label, isLandscape = true)
+                            isDigit -> vm.onDigit(label)
                             isOp -> vm.onOperator("+")
                             isEEOp -> vm.onOperator("EE")
                             else -> vm.onScientific(label)
@@ -1046,7 +1046,7 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                 modifier = Modifier.weight(2f).height(48.dp),
                 onClick = {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    vm.onDigit("0", isLandscape = true)
+                    vm.onDigit("0")
                 }
             ) { fg ->
                 Row(modifier = Modifier.fillMaxSize()) {
