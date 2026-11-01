@@ -233,7 +233,6 @@ class CalculatorViewModel : ViewModel() {
 
         val isHigh = isHighPrecedence(op)
 
-        // If the user tapped an operator immediately after another operator: switch operator!
         if (inputState == InputState.OPERATOR_JUST_PRESSED) {
             if (isHigh) {
                 pendingLowOp = null
@@ -246,7 +245,6 @@ class CalculatorViewModel : ViewModel() {
             return
         }
 
-        // An operand is present: evaluate algebraic hierarchy
         var curr = currentValue
 
         if (isHigh) {
@@ -262,7 +260,7 @@ class CalculatorViewModel : ViewModel() {
                 _displayValue.value = curr.toString()
             }
             pendingHighOp = Pair(curr, op)
-        } else { // low op (+, −)
+        } else {
             if (pendingHighOp != null) {
                 val (valHigh, opHigh) = pendingHighOp!!
                 val res = calculate(opHigh, valHigh, curr)
@@ -382,7 +380,6 @@ class CalculatorViewModel : ViewModel() {
     fun onScientific(fn: String) {
         if (hasError) resetAll()
 
-        // Binary operations routed to onOperator
         when (fn) {
             "xʸ", "yˣ", "ʸ√x", "log_y", "logᵧ", "EE" -> {
                 onOperator(fn)
@@ -461,7 +458,6 @@ class CalculatorViewModel : ViewModel() {
             }
         }
 
-        // Unary functions applied immediately to currentValue
         val curr = currentValue
         val isRad = _isRadMode.value
 
