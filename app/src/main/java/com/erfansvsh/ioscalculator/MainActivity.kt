@@ -303,8 +303,8 @@ fun IosPlusMinusGlyph(
 }
 
 /**
- * Authentic Apple iOS decimal dot '.' glyph rendered on Canvas.
- * Matches the exact diameter and downward baseline position from iPhone screenshots (+14.4% below vertical center).
+ * Decimal point dot exactly positioned like iPhone Calculator
+ * (downward by +14.4% of button diameter, matching zero-dot-equal_447dbf0a.png).
  */
 @Composable
 fun IosDecimalDot(
@@ -312,9 +312,14 @@ fun IosDecimalDot(
     modifier: Modifier = Modifier
 ) {
     Canvas(modifier = modifier) {
-        val dotRadius = size.minDimension * 0.052f
-        val dotCenter = Offset(size.width / 2f, size.height * 0.644f)
-        drawCircle(color = color, radius = dotRadius, center = dotCenter)
+        val s = min(size.width, size.height) / 2f
+        val dotRadius = s * 0.060f
+        val dotCenterY = center.y + s * 0.288f
+        drawCircle(
+            color = color,
+            radius = dotRadius,
+            center = Offset(center.x, dotCenterY)
+        )
     }
 }
 
@@ -361,60 +366,63 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
             // Available horizontal width for the text, leaving 4.dp padding on each side
             val availableWidthPx = with(density) { (maxWidth - 8.dp).toPx() }
 
-            // Apple iOS 4-Stage Portrait Font Scaling:
-            // Stage 1 - 1 to 6 digits (e.g. "0" to "888,888"): Largest size (94sp, Thin W200), filling screen horizontally on 888,888
-            // Stage 2 - 7 digits (e.g. "8,888,888"): Scales down slightly (82sp, Light W300) to fit
-            // Stage 3 - 8 digits (e.g. "88,888,888"): Scales down slightly more (72sp, Light W300) to fit
-            // Stage 4 - 9 digits (e.g. "888,888,888" or scientific notation like "8.888889e9" / "8e9"): Scales down to fit 9 digits (62sp, Light W300)
+            // Dynamic Apple iOS 4-Stage Portrait Font Scaling:
+            // Authentic Apple Thin font (FontWeight.W200) - NEVER bold at any stage.
+            // Stage 1 (1 to 6 digits, e.g. "0" to "888,888"): Font size dynamically calculated so "888,888" FILLS THE SCREEN HORIZONTALLY.
+            // Stage 2 (7 digits, e.g. "8,888,888"): Scales down to fit 7 digits horizontally edge-to-edge.
+            // Stage 3 (8 digits, e.g. "88,888,888"): Scales down to fit 8 digits horizontally edge-to-edge.
+            // Stage 4 (9 digits, e.g. "888,888,888" or scientific notation): Scales down to fit 9 digits horizontally edge-to-edge.
             val (optimalFontSize, optimalFont, optimalWeight) = remember(formattedDisplay, availableWidthPx) {
-                // Find maximum fitting size for a given reference text within availableWidthPx
-                fun findFittingSp(text: String, startSp: Float, minSp: Float, font: FontFamily, weight: FontWeight): Float {
-                    var currentSp = startSp
-                    while (currentSp > minSp) {
+                // Dynamically calculates the exact maximum font size in SP that fills availableWidthPx for a reference text on this specific device screen
+                fun findFitSp(refText: String): Float {
+                    var low = 20f
+                    var high = 180f
+                    var best = 30f
+                    for (step in 0 until 14) {
+                        val mid = (low + high) / 2f
                         val layout = textMeasurer.measure(
-                            text = text,
-                            style = TextStyle(fontFamily = font, fontWeight = weight, fontSize = currentSp.sp),
+                            text = refText,
+                            style = TextStyle(fontFamily = sfDisplayThin, fontWeight = FontWeight.W200, fontSize = mid.sp),
                             maxLines = 1
                         )
-                        if (layout.size.width <= availableWidthPx) break
-                        currentSp -= 1f
+                        if (layout.size.width <= availableWidthPx) {
+                            best = mid
+                            low = mid
+                        } else {
+                            high = mid
+                        }
                     }
-                    return currentSp
+                    return best
                 }
 
-                val stage1Sp = findFittingSp("888,888", 94f, 70f, sfDisplayThin, FontWeight.W200)
-                val stage2Sp = findFittingSp("8,888,888", 82f, 58f, sfDisplayLight, FontWeight.W300)
-                val stage3Sp = findFittingSp("88,888,888", 72f, 48f, sfDisplayLight, FontWeight.W300)
-                val stage4Sp = findFittingSp("888,888,888", 62f, 38f, sfDisplayLight, FontWeight.W300)
+                val stage1Sp = findFitSp("888,888")
+                val stage2Sp = findFitSp("8,888,888")
+                val stage3Sp = findFitSp("88,888,888")
+                val stage4Sp = findFitSp("888,888,888")
 
                 // Count digits (0-9)
                 val isExp = formattedDisplay.contains("e") || formattedDisplay.contains("E")
                 val digitCount = if (isExp) 9 else formattedDisplay.count { it.isDigit() }
 
-                val (baseSp, font, weight) = when {
-                    digitCount <= 6 -> Triple(stage1Sp, sfDisplayThin, FontWeight.W200)
-                    digitCount == 7 -> Triple(stage2Sp, sfDisplayLight, FontWeight.W300)
-                    digitCount == 8 -> Triple(stage3Sp, sfDisplayLight, FontWeight.W300)
-                    else -> Triple(stage4Sp, sfDisplayLight, FontWeight.W300)
+                val baseSp = when {
+                    digitCount <= 6 -> stage1Sp
+                    digitCount == 7 -> stage2Sp
+                    digitCount == 8 -> stage3Sp
+                    else -> stage4Sp
                 }
 
-                // Guarantee that the actual formatted string (including sign, e-exponent, etc.) does not clip
+                // Ensure any wide characters, decimals, negative signs, or scientific exponents never clip
                 var finalSp = baseSp
                 var layout = textMeasurer.measure(
                     text = formattedDisplay,
-                    style = TextStyle(fontFamily = font, fontWeight = weight, fontSize = finalSp.sp),
+                    style = TextStyle(fontFamily = sfDisplayThin, fontWeight = FontWeight.W200, fontSize = finalSp.sp),
                     maxLines = 1
                 )
-                while (layout.size.width > availableWidthPx && finalSp > 24f) {
-                    finalSp -= 1f
-                    layout = textMeasurer.measure(
-                        text = formattedDisplay,
-                        style = TextStyle(fontFamily = font, fontWeight = weight, fontSize = finalSp.sp),
-                        maxLines = 1
-                    )
+                if (layout.size.width > availableWidthPx && layout.size.width > 0f) {
+                    finalSp = (finalSp * (availableWidthPx / layout.size.width)).coerceAtLeast(20f)
                 }
 
-                Triple(finalSp.sp, font, weight)
+                Triple(finalSp.sp, sfDisplayThin, FontWeight.W200)
             }
 
             Text(
@@ -443,11 +451,12 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(spacing)
             ) {
-                // Row 1: AC, +/-, %, ÷
+                // Row 1: AC/C, +/-, %, ÷ (Authentic Apple vector glyphs)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(spacing)
                 ) {
+                    // AC/C button: increased to 42.sp to match exact visual height with % and +/-
                     UniversalIosButton(
                         defaultBg = ColorLightGray,
                         pressedBg = ColorLightGrayPressed,
@@ -458,15 +467,10 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                             vm.onClear()
                         }
                     ) { fg ->
-                        Text(
-                            text = clearLabel,
-                            color = fg,
-                            fontFamily = sfTextRegular,
-                            fontSize = if (clearLabel == "AC") 36.sp else 40.sp,
-                            fontWeight = FontWeight.Normal
-                        )
+                        Text(text = clearLabel, color = fg, fontFamily = sfTextRegular, fontSize = 42.sp, fontWeight = FontWeight.Normal)
                     }
 
+                    // Vector +/- glyph created directly from SF Pro %: matches exact visual height
                     UniversalIosButton(
                         defaultBg = ColorLightGray,
                         pressedBg = ColorLightGrayPressed,
@@ -477,9 +481,10 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                             vm.onToggleSign()
                         }
                     ) { fg ->
-                        IosPlusMinusGlyph(color = fg, glyphHeight = 31.dp)
+                        IosPlusMinusGlyph(color = fg, glyphHeight = 29.dp)
                     }
 
+                    // % button: rendered with genuine SF Pro font, matching exact height of AC and +/-
                     UniversalIosButton(
                         defaultBg = ColorLightGray,
                         pressedBg = ColorLightGrayPressed,
@@ -490,13 +495,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                             vm.onPercent()
                         }
                     ) { fg ->
-                        Text(
-                            text = "%",
-                            color = fg,
-                            fontFamily = sfTextRegular,
-                            fontSize = 33.sp,
-                            fontWeight = FontWeight.Normal
-                        )
+                        Text(text = "%", color = fg, fontFamily = sfTextRegular, fontSize = 42.sp, fontWeight = FontWeight.Normal)
                     }
 
                     UniversalIosButton(
@@ -512,7 +511,7 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                             vm.onOperator("÷")
                         }
                     ) { fg ->
-                        Text(text = "÷", color = fg, fontFamily = sfTextRegular, fontSize = 50.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-2).dp))
+                        Text(text = "÷", color = fg, fontFamily = sfTextRegular, fontSize = 48.sp, fontWeight = FontWeight.Normal, modifier = Modifier.offset(y = (-3).dp))
                     }
                 }
 
@@ -685,7 +684,6 @@ fun PortraitCalculator(vm: CalculatorViewModel) {
                         IosDecimalDot(color = fg, modifier = Modifier.fillMaxSize())
                     }
 
-                    // Equals button
                     UniversalIosButton(
                         defaultBg = ColorOrange,
                         pressedBg = ColorOrangePressed,
@@ -775,80 +773,89 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
         val radButtonLabel = if (isRadMode) "Deg" else "Rad"
 
         val sciCols = listOf(
-            listOf("(", ")", "mc", "m+", "m-", "mr", clearLabel, "+/-", "%", "÷"),
-            listOf(if (is2nd) "2ⁿᵈ" else "2ⁿᵈ", "x²", "x³", if (is2nd) "yˣ" else "xʸ", if (is2nd) "2ˣ" else "eˣ", if (is2nd) "log_y" else "10ˣ", "7", "8", "9", "×"),
-            listOf("1/x", "²√x", "³√x", if (is2nd) "ʸ√x" else "ʸ√x", if (is2nd) "log₂" else "ln", if (is2nd) "logᵧ" else "log₁₀", "4", "5", "6", "−"),
-            listOf("x!", if (is2nd) "sin⁻¹" else "sin", if (is2nd) "cos⁻¹" else "cos", if (is2nd) "tan⁻¹" else "tan", "e", "EE", "1", "2", "3", "+")
+            listOf("(", ")", "mc", "m+", "m-", "mr", clearLabel, "±", "%", "÷"),
+            listOf(if (is2nd) "2ⁿᵈ" else "2ⁿᵈ", "x²", "x³", "xʸ", if (is2nd) "yˣ" else "eˣ", if (is2nd) "2ˣ" else "10ˣ", "7", "8", "9", "×"),
+            listOf("1/x", "²√x", "³√x", "ʸ√x", if (is2nd) "logᵧ" else "ln", if (is2nd) "log₂" else "log₁₀", "4", "5", "6", "−"),
+            listOf("x!", if (is2nd) "sin⁻¹" else "sin", if (is2nd) "cos⁻¹" else "cos", if (is2nd) "tan⁻¹" else "tan", "e", "EE", "1", "2", "3", "+"),
+            listOf(radButtonLabel, if (is2nd) "sinh⁻¹" else "sinh", if (is2nd) "cosh⁻¹" else "cosh", if (is2nd) "tanh⁻¹" else "tanh", "π", "Rand", "0", ".", "=")
         )
 
         // Row 1
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             sciCols[0].forEachIndexed { i, label ->
                 val isOp = i == 9
-                val isTopGray = i in 6..8
+                val isTopLight = i in 6..8
                 val isMr = label == "mr"
-
-                val defaultBg = if (isOp) ColorOrange else if (isTopGray) ColorLightGray else ColorSciGray
-                val pressedBg = if (isOp) ColorOrangePressed else if (isTopGray) ColorLightGrayPressed else ColorSciGrayPressed
-                val defaultFg = if (isTopGray) ColorBlack else ColorWhite
-
                 val isMrActive = isMr && hasMemory
-                val buttonBg = if (isMrActive) ColorMrActiveBg else defaultBg
-                val buttonFg = if (isMrActive) ColorMrActiveFg else defaultFg
-                val buttonPressedBg = if (isMrActive) ColorMrActivePressedBg else pressedBg
+                val isDivActive = isOp && activeOperator == "÷"
+                val isActive = isDivActive || isMrActive
 
-                val isActiveOp = isOp && activeOperator == "÷"
+                val defaultBg = if (isOp) ColorOrange else if (isTopLight) ColorLightGray else ColorSciGray
+                val pressedBg = if (isOp) ColorOrangePressed else if (isTopLight) ColorLightGrayPressed else ColorSciGrayPressed
+                val defaultFg = if (isTopLight) ColorBlack else ColorWhite
+
+                // Real iOS: when 'mr' is activated, it displays darker gray #808080 with black text
+                val activeBgColor = if (isMr) ColorMrActiveBg else if (isOp) ColorWhite else ColorSciActiveBg
+                val activeFgColor = if (isMr) ColorMrActiveFg else if (isOp) ColorOrange else ColorSciActiveFg
+                val pressedActiveBgColor = if (isMr) ColorMrActivePressedBg else null
 
                 UniversalIosButton(
-                    defaultBg = buttonBg,
-                    pressedBg = buttonPressedBg,
-                    defaultFg = buttonFg,
-                    isActive = isActiveOp,
-                    activeBg = ColorWhite,
-                    activeFg = ColorOrange,
+                    defaultBg = defaultBg,
+                    pressedBg = pressedBg,
+                    defaultFg = defaultFg,
+                    activeBg = activeBgColor,
+                    activeFg = activeFgColor,
+                    pressedActiveBg = pressedActiveBgColor,
+                    isActive = isActive,
                     modifier = Modifier.weight(1f).height(48.dp),
                     onClick = {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                         when (label) {
-                            "mc" -> {
-                                hasMemory = false
-                                vm.onScientific("mc")
-                            }
-                            "m+" -> {
-                                hasMemory = true
-                                vm.onScientific("m+")
-                            }
-                            "m-" -> {
-                                hasMemory = true
-                                vm.onScientific("m-")
-                            }
-                            "C", "AC" -> vm.onClear()
-                            "+/-" -> vm.onToggleSign()
+                            "AC", "C" -> vm.onClear()
+                            "±" -> vm.onToggleSign()
                             "%" -> vm.onPercent()
                             "÷" -> vm.onOperator("÷")
+                            "mc" -> {
+                                hasMemory = false
+                                vm.onScientific(label)
+                            }
+                            "m+", "m-" -> {
+                                hasMemory = true
+                                vm.onScientific(label)
+                            }
                             else -> vm.onScientific(label)
                         }
                     }
                 ) { fg ->
-                    if (label == "+/-") {
-                        IosPlusMinusGlyph(color = fg, glyphHeight = 24.dp)
-                    } else if (label == "%") {
-                        Text(
-                            text = "%",
-                            color = fg,
-                            fontFamily = sfTextRegular,
-                            fontSize = 24.sp,
-                            fontWeight = FontWeight.Normal
-                        )
-                    } else {
-                        Text(
-                            text = label,
-                            color = fg,
-                            fontFamily = sfTextRegular,
-                            fontSize = if (isOp) 34.sp else if (isTopGray) 24.sp else 19.sp,
-                            fontWeight = FontWeight.Normal,
-                            modifier = if (isOp) Modifier.offset(y = (-1).dp) else Modifier
-                        )
+                    when (label) {
+                        "±" -> IosPlusMinusGlyph(color = fg, glyphHeight = 16.dp)
+                        "%" -> {
+                            Text(
+                                text = "%",
+                                color = fg,
+                                fontFamily = sfTextRegular,
+                                fontSize = 23.sp,
+                                fontWeight = FontWeight.Normal
+                            )
+                        }
+                        "AC", "C" -> {
+                            Text(
+                                text = label,
+                                color = fg,
+                                fontFamily = sfTextRegular,
+                                fontSize = 23.sp,
+                                fontWeight = FontWeight.Normal
+                            )
+                        }
+                        else -> {
+                            Text(
+                                text = label,
+                                color = fg,
+                                fontFamily = sfTextRegular,
+                                fontSize = if (isOp) 34.sp else 19.sp,
+                                fontWeight = FontWeight.Normal
+                            )
+                        }
                     }
                 }
             }
@@ -1159,38 +1166,10 @@ fun formatPortraitDisplay(value: String): String {
  */
 fun formatLandscapeDisplay(value: String): String {
     if (value == "Error") return "Error"
-    if (value.contains("e") || value.contains("E")) {
-        val expStr = value.replace("+", "").replace("e0", "e").replace("e-0", "e-").replace("E0", "e").replace("E-0", "e-").replace("E", "e")
-        val eIndex = expStr.indexOf('e')
-        return if (eIndex != -1) {
-            val mantissa = expStr.substring(0, eIndex)
-            val exponent = expStr.substring(eIndex)
-            val cleanMantissa = if (mantissa.contains('.')) mantissa.trimEnd('0').trimEnd('.') else mantissa
-            cleanMantissa + exponent
-        } else expStr
-    }
+    if (value.contains("e") || value.contains("E")) return value
 
     val num = value.toDoubleOrNull() ?: return value
     if (num == 0.0) return if (value.startsWith("-")) "-0" else "0"
-
-    val absNum = abs(num)
-    val digitsOnly = value.replace(Regex("[^0-9]"), "")
-
-    if (absNum >= 1e16 || (absNum < 1e-8 && absNum > 0.0) || digitsOnly.length > 16) {
-        val expStr = String.format(Locale.US, "%.10e", num)
-            .replace("+", "")
-            .replace("e0", "e")
-            .replace("e-0", "e-")
-        val eIndex = expStr.indexOf('e')
-        return if (eIndex != -1) {
-            val mantissa = expStr.substring(0, eIndex)
-            val exponent = expStr.substring(eIndex)
-            val cleanMantissa = if (mantissa.contains('.')) mantissa.trimEnd('0').trimEnd('.') else mantissa
-            cleanMantissa + exponent
-        } else {
-            expStr
-        }
-    }
 
     if (value.endsWith(".") || (value.contains(".") && value.endsWith("0"))) {
         val parts = value.split(".")
@@ -1202,15 +1181,21 @@ fun formatLandscapeDisplay(value: String): String {
     }
 
     return try {
-        val mc = MathContext(16, RoundingMode.HALF_UP)
-        val bd = BigDecimal(value, mc)
-        val plain = bd.stripTrailingZeros().toPlainString()
-        val parts = plain.split(".")
-        val isNeg = parts[0].startsWith("-")
-        val cleanInt = if (isNeg) parts[0].substring(1) else parts[0]
-        val formattedInt = cleanInt.reversed().chunked(3).joinToString(",").reversed()
-        val signedInt = if (isNeg) "-$formattedInt" else formattedInt
-        if (parts.size > 1) "$signedInt.${parts[1]}" else signedInt
+        val absNum = abs(num)
+        if (absNum >= 1e16 || (absNum < 1e-8 && absNum > 0.0)) {
+            val expStr = String.format(Locale.US, "%.10e", num)
+            expStr.replace("+", "").replace("e0", "e").replace("e-0", "e-")
+        } else {
+            val mc = MathContext(16, RoundingMode.HALF_UP)
+            val bd = BigDecimal(value, mc)
+            val plain = bd.stripTrailingZeros().toPlainString()
+            val parts = plain.split(".")
+            val isNeg = parts[0].startsWith("-")
+            val cleanInt = if (isNeg) parts[0].substring(1) else parts[0]
+            val formattedInt = cleanInt.reversed().chunked(3).joinToString(",").reversed()
+            val signedInt = if (isNeg) "-$formattedInt" else formattedInt
+            if (parts.size > 1) "$signedInt.${parts[1]}" else signedInt
+        }
     } catch (e: Exception) {
         val parts = value.split(".")
         val isNeg = parts[0].startsWith("-")
