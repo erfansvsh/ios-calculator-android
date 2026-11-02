@@ -693,7 +693,7 @@ fun LandscapeCalculator(vm: CalculatorViewModel) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 12.dp)
-                    .offset(y = (-4).dp) // Shifted up slightly (~4%)
+                    .offset(y = (-15).dp) // Shifted up slightly
             )
         }
 
