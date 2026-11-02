@@ -26,21 +26,31 @@ jobs:
       with:
         gradle-version: '8.7'
 
-    - name: Generate Release Signing Key
+    - name: Prepare Signing Keystore
+      env:
+        KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
       run: |
-        if [ ! -f release-key.jks ]; then
+        if [ -n "$KEYSTORE_BASE64" ]; then
+          echo "Restoring permanent release keystore from GitHub Secrets..."
+          echo "$KEYSTORE_BASE64" | base64 -d > release-key.jks
+        elif [ ! -f release-key.jks ]; then
+          echo "Generating fallback release key..."
           keytool -genkeypair -v \
             -keystore release-key.jks \
             -alias ios-calculator \
             -keyalg RSA \
             -keysize 2048 \
             -validity 10000 \
-            -storepass "iOSCalcRelease2025" \
-            -keypass "iOSCalcRelease2025" \
-            -dname "CN=iOS Calculator, OU=Mobile, O=AppDev, L=City, S=State, C=US"
+            -storepass "iOSCalcRelease20261102" \
+            -keypass "iOSCalcRelease20261102" \
+            -dname "CN=Erfan Siavoshy"
         fi
 
     - name: Build Release APK
+      env:
+        KEYSTORE_PASSWORD: "iOSCalcRelease20261102"
+        KEY_PASSWORD: "iOSCalcRelease20261102"
+        KEY_ALIAS: "ios-calculator"
       run: gradle :app:assembleRelease --stacktrace --no-daemon
 
     - name: Upload Release APK Artifact
