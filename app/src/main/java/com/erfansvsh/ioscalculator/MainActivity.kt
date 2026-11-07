@@ -1,4 +1,4 @@
-package com.erfansvsh.ioscalculator
+package com.erfansvsh.ios17calculator
 
 import android.content.res.Configuration
 import android.graphics.Typeface
