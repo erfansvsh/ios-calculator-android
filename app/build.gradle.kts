@@ -4,15 +4,15 @@ plugins {
 }
 
 android {
-    namespace = "com.erfansvsh.ioscalculator"
+    namespace = "com.erfansvsh.ios17calculator"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.erfansvsh.ioscalculator"
+        applicationId = "com.erfansvsh.ios17calculator"
         minSdk = 26
         targetSdk = 34
         versionCode = 2
-        versionName = "1.1.0"
+        versionName = "1.2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -39,7 +39,7 @@ android {
             )
         }
         debug {
-            // No suffix so package name is strictly com.erfansvsh.ioscalculator
+            // No suffix so package name is strictly com.erfansvsh.ios17calculator
             isDebuggable = true
         }
     }
