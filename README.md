@@ -1,14 +1,15 @@
-# 📱 Clean Calculator — Native iOS Calculator for Android
+# 📱 iOS Calculator — Native iOS Calculator for Android
 
 [![Kotlin](https://img.shields.io/badge/Kotlin-1.9%2B-7F52FF?style=flat-square&logo=kotlin&logoColor=white)](https://kotlinlang.org/)
-[![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-1.5%2B-4285F4?style=flat-square&logo=android&logoColor=white)](https://developer.android.com/jetpack/compose)
+[![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-2024.05.00-4285F4?style=flat-square&logo=android&logoColor=white)](https://developer.android.com/jetpack/compose)
 [![Architecture](https://img.shields.io/badge/Architecture-MVI%20%2F%20Unidirectional-00C853?style=flat-square)](#-system-architecture--unidirectional-data-flow)
+[![Typography](https://img.shields.io/badge/Typography-Apple%20SF%20Pro-000000?style=flat-square&logo=apple&logoColor=white)](#-apple-sf-pro-typography--vector-glyphs)
 [![Precision](https://img.shields.io/badge/Math%20Engine-IEEE--754%20Sanitized-FF6D00?style=flat-square)](#-ieee-754-floating-point-precision-sanitizer)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
 
-An architectural and engineering clone of Apple’s native **iOS Calculator**, written completely from scratch in 100% modern **Kotlin** using **Jetpack Compose**. 
+An architectural and engineering reproduction of Apple’s native **iOS Calculator**, written completely from scratch in 100% modern **Kotlin** using **Jetpack Compose**. 
 
-This repository delivers 1:1 tactile ergonomics, including **120ms color animation curves**, **swipe-to-delete display gestures**, **haptic feedback**, dynamic text downscaling, complete portrait-to-landscape layout expansion into a **50-key scientific matrix**, and an **IEEE-754 precision math sanitizer**.
+This repository delivers 1:1 tactile ergonomics, including **Apple SF Pro Display typography**, custom-rendered **vector glyph geometry**, **two-phase 120ms button animation curves**, **swipe-to-delete display gestures**, **haptic feedback**, **density-independent horizontal screen-filling downscaling**, a **two-level algebraic precedence engine with nested parentheses**, complete portrait-to-landscape expansion into a **50-key scientific matrix**, and an **IEEE-754 precision math sanitizer**.
 
 ---
 
@@ -16,7 +17,7 @@ This repository delivers 1:1 tactile ergonomics, including **120ms color animati
 
 | Portrait Mode (Standard 19-Key Layout) | Landscape Mode (50-Key Scientific Matrix) |
 | :---: | :---: |
-| Pad-aligned circular key layout, double-width stadium zero key, and dynamic backspace gesture support. | Expands seamlessly into trigonometry, powers, logarithms, hyperbolic functions, memory registers, and RAD/DEG modes. |
+| Circular key geometry, left-anchored double-width stadium zero key, optically tailored top functional row (`AC`, `±`, `%`), and dynamic backspace gesture support. | Expands seamlessly into a 10-column matrix featuring trigonometry, powers, logarithms, hyperbolic functions, memory registers, nested parentheses, and RAD/DEG modes with elevated display alignment. |
 
 ---
 
@@ -27,14 +28,14 @@ This repository delivers 1:1 tactile ergonomics, including **120ms color animati
 Think of an application as an automated, high-efficiency kitchen:
 
 1. **The Dining Room (The UI / View):** This is the visual interface with buttons and display screens. It receives touches from the user (customer) and displays food (data). The UI *never cooks*—it only conveys touch events back to the kitchen and presents prepared meals.
-2. **The Chief Chef (The ViewModel):** The ViewModel is a dedicated, stateful engine that stores order tickets, decides mathematical rules, and calculates recipes. If the building rotates (screen rotation from portrait to landscape), the kitchen stays completely untouched so your current order state is never lost.
+2. **The Chief Chef (The ViewModel):** The ViewModel is a dedicated, stateful engine that stores order tickets, decides mathematical rules, and calculates recipes. If the building rotates (screen rotation from portrait to landscape), the kitchen stays completely untouched so your current calculation and memory state is never lost.
 3. **The Conveyor Belt (StateFlow):** Data flows continuously from the ViewModel to the screen on an invisible, real-time conveyor belt called `StateFlow`. When an operator changes state in the kitchen, the screen automatically updates instantly.
 
 ---
 
 ## 🏗️ System Architecture & Unidirectional Data Flow
 
-The app follows strict **Unidirectional Data Flow (UDF)** / **MVI pattern**. The UI components never mutate internal state or compute math directly; touch events dispatch intents to the `CalculatorViewModel`, which sanitizes arithmetic operations and emits state back down to the UI layer.
+The app follows strict **Unidirectional Data Flow (UDF)** / **MVI pattern**. UI components never mutate internal state or compute math directly; touch events dispatch intents to `CalculatorViewModel`, which handles input staging, algebraic precedence, error boundaries, and numerical sanitization before emitting immutable state down to the UI layer.
 
 ```
 ┌────────────────────────────────────────────────────────┐
@@ -42,25 +43,27 @@ The app follows strict **Unidirectional Data Flow (UDF)** / **MVI pattern**. The
 │                                                        │
 │   ┌────────────────────┐      ┌────────────────────┐   │
 │   │ UniversalIosButton │      │   Swipe Display    │   │
+│   │ & Vector Glyphs    │      │ (Auto-Downscaling) │   │
 │   └─────────┬──────────┘      └─────────▲──────────┘   │
 └─────────────┼──────────────────────────┼───────────────┘
-              │ Direct User Actions      │ StateFlow Updates
+              │ User Touch Events        │ StateFlow Updates
               ▼                          │
 ┌────────────────────────────────────────┴───────────────┐
 │                 CalculatorViewModel                    │
 │                                                        │
 │   ┌────────────────────┐      ┌────────────────────┐   │
-│   │  MutableStateFlow  │      │ Memory & Operator  │   │
-│   │   Backing Streams  │      │     Registers      │   │
+│   │ Two-Level Operator │      │  Nested Expression │   │
+│   │   Stack (+ vs *)   │      │  Parenthesis Stack │   │
 │   └─────────┬──────────┘      └─────────▲──────────┘   │
 └─────────────┼──────────────────────────┼───────────────┘
-              │ Raw Calculation Inputs   │ Sanitized Output
+              │ Raw Input Stream         │ Sanitized State
               ▼                          │
 ┌────────────────────────────────────────┴───────────────┘
 │              Pure Math Engine & Sanitizer              │
 │                                                        │
 │   • IEEE-754 Residual Snapper   • Degree Normalization │
-│   • Rounding to 12 Sig Digits   • Error Handling Guard │
+│   • Rounding to 12 Sig Digits   • Repeated Equals ( = )│
+│   • Dynamic Locale Formatting   • Exponential Fallback │
 └────────────────────────────────────────────────────────┘
 ```
 
@@ -68,12 +71,18 @@ The app follows strict **Unidirectional Data Flow (UDF)** / **MVI pattern**. The
 
 ## 🧠 ViewModel State Management & Core Architecture
 
-The application's core logic is encapsulated within `CalculatorViewModel.kt`. It provides read-only `StateFlow` streams exposed to the UI layer while keeping mutable internal registers private.
+The application's core logic is encapsulated within `CalculatorViewModel.kt`. It provides read-only `StateFlow` streams exposed to the UI layer while keeping mutable internal registers and operator stacks private.
 
-### Key State Properties
+### Key State Properties & Operator Stacks
 
 ```kotlin
 class CalculatorViewModel : ViewModel() {
+    enum class InputState {
+        TYPING,                 // User is typing digits or decimal point
+        OPERATOR_JUST_PRESSED,  // An operator (+, -, *, /) was just clicked
+        OPERAND_READY           // An operand was produced by constant (pi, e), function, or equals
+    }
+
     // Encapsulated State Flow Streams
     private val _displayValue = MutableStateFlow("0")
     val displayValue: StateFlow<String> = _displayValue.asStateFlow()
@@ -87,53 +96,53 @@ class CalculatorViewModel : ViewModel() {
     private val _is2nd = MutableStateFlow(false)
     val is2nd: StateFlow<Boolean> = _is2nd.asStateFlow()
 
-    // Internal Calculation Registers
-    private var pendingOperator: String? = null
-    private var previousValue: Double? = null
-    private var waitingForOperand: Boolean = false
-    private var lastOperation: Pair<String, Double>? = null
+    // Two-level operator stack for algebraic operator precedence (+/- vs */powers)
+    private var pendingLowOp: Pair<Double, String>? = null   // +, -
+    private var pendingHighOp: Pair<Double, String>? = null  // *, /, powers, roots, log, EE
+
+    // Parenthesis stack for nested expressions
+    private val parenStack = ArrayDeque<Pair<Pair<Double, String>?, Pair<Double, String>?>>()
+
+    // Repeated equals operation: (operator, rightOperand)
+    private var lastEqualsOp: Pair<String, Double>? = null
     private var memory: Double = 0.0
 }
 ```
 
 ---
 
-## 🧮 IEEE-754 Floating-Point Precision Sanitizer
+## 🧮 Math Engine, Formatting & Precision Sanitizer
+
+### Algebraic Operator Precedence & Repeated Equals
+
+The calculation engine mirrors Apple's two-level algebraic operator evaluation hierarchy:
+- High-precedence operations (`×`, `÷`, roots, powers, logs) bind tighter than low-precedence operations (`+`, `−`).
+- Pressing `=` consecutively repeats the previous binary operation with the cached right-hand operand.
+- Full nested parentheses evaluate sub-expressions independently, unwinding onto the operator stack upon closing.
+
+### Floating-Point Sanitizer
 
 Binary hardware calculations inherent to floating-point representation introduce arithmetic anomalies such as:
 $$\text{0.1} + \text{0.2} = \text{0.30000000000000004}$$
 $$\cos(90^\circ) = 6.123233995736766 \times 10^{-17}$$
 
-To eliminate these floating-point artifacts, every single calculation passes through a multi-tier **`sanitize()` pipeline**:
+To eliminate these artifacts without truncating transcendental constants ($\pi, e$), calculations pass through a dedicated sanitization pass:
 
 ```kotlin
-/**
- * Sanitizes floating point anomalies.
- * Snaps microscopic residual values to 0.0, snaps near-integers,
- * and truncates to 12 significant digits.
- */
-fun sanitize(num: Double): Double {
+private fun sanitize(num: Double): Double {
     if (num.isNaN() || num.isInfinite()) return num
-
-    // Step 1: Snap microscopic residuals to zero (e.g., cos(90°))
-    if (abs(num) < 1e-12) return 0.0
-
-    // Step 2: Snap near-integers (e.g., 4.999999999999 -> 5.0)
-    val rounded = round(num)
-    if (abs(num - rounded) < 1e-11) return rounded
-
-    // Step 3: Round to 12 significant digits using BigDecimal
-    return try {
-        BigDecimal(num.toString(), MathContext(12, RoundingMode.HALF_UP)).toDouble()
-    } catch (e: Exception) {
-        num
+    if (abs(num) < 1e-13) return 0.0
+    val roundInt = round(num)
+    if (abs(num - roundInt) < 1e-11) {
+        return roundInt
     }
+    return num
 }
 ```
 
-### Exact Degree Trigonometric Tables
+### Exact Degree Trigonometric Normalization
 
-To prevent binary floating-point drift in trigonometric functions, inputs in Degree mode are projected into the $[0, 360^\circ)$ range and evaluated via strict constant lookup tables:
+In Degree mode, angular inputs are normalized into $[0, 360^\circ)$ and resolved via cardinal lookup boundaries:
 
 ```kotlin
 private fun calcSin(angle: Double, inRad: Boolean): Double {
@@ -154,81 +163,56 @@ private fun calcSin(angle: Double, inRad: Boolean): Double {
 }
 ```
 
+### Adaptive Display Formatting
+
+Output strings are formatted adaptively based on device orientation:
+- **Portrait Mode:** Formats up to 9 significant digits with thousands comma separators; switches to lowercase scientific notation (`8e9`) when values equal or exceed $10^9$ or are smaller than $10^{-8}$.
+- **Landscape Mode:** Formats up to 16 significant digits with thousands comma separators; switches to scientific notation for values equal or exceeding $10^{16}$ or smaller than $10^{-8}$.
+
 ---
 
-## 🎨 UI & Dynamic Compose Keypad Mechanics
+## 🎨 Typography, Keypad Mechanics & Visual Architecture
 
-### 120ms Color Animation & Touch States (`UniversalIosButton`)
+### Apple SF Pro Typography & Vector Glyphs
 
-The native iOS calculator inverts color states dynamically upon interaction. `UniversalIosButton` mirrors this by combining `MutableInteractionSource` press tracking with a `tween(120)` transition curve.
+The user interface uses native **Apple SF Pro Display** fonts (`sfDisplayThin`, `sfDisplayLight`, `sfDisplayRegular`) for exact typographic matching:
+- **Dynamic Plus/Minus Glyph (`IosPlusMinusGlyph`):** The $\pm$ symbol is drawn directly on a Compose `Canvas` with native slash angles and line proportions to eliminate platform-dependent Unicode rendering discrepancies.
+- **Optically Tailored Top Row:** In portrait mode, the text and glyph sizes on the top functional buttons (`AC`, `±`, `%`) are scaled down by 15% to maintain exact visual balance against numeric digits.
 
-```kotlin
-@Composable
-fun UniversalIosButton(
-    modifier: Modifier = Modifier,
-    defaultBg: Color,
-    pressedBg: Color,
-    defaultFg: Color,
-    isActive: Boolean = false,
-    activeBg: Color = Color.White,
-    activeFg: Color = ColorOrange,
-    shape: Shape = CircleShape,
-    onClick: () -> Unit,
-    content: @Composable (fg: Color) -> Unit
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
+### Dual-Phase Animation Curves (`UniversalIosButton`)
 
-    val targetBg = when {
-        isActive -> activeBg
-        isPressed -> pressedBg
-        else -> defaultBg
-    }
-    val targetFg = if (isActive) activeFg else defaultFg
-    val animatedBg by animateColorAsState(targetBg, tween(120), label = "bg")
-
-    Box(
-        modifier = modifier
-            .clip(shape)
-            .background(animatedBg)
-            .clickable(
-                interactionSource = interactionSource, 
-                indication = null, 
-                onClick = onClick
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        content(targetFg)
-    }
-}
-```
-
-### Dynamic Display Scaling & Gestures
-
-- **Swipe-to-Delete:** Swiping left or right on the main number output triggers a backspace operation alongside a subtle tactile haptic vibration (`HapticFeedbackType.LongPress`).
-- **Dynamic Downscaling:** Typography shrinks dynamically as string length increases to prevent clipping:
+Button interactions utilize asymmetric dual-phase animation curves matching native iOS response profiles:
 
 ```kotlin
-val fontSize = when {
-    displayStr.length <= 5 -> 100.sp
-    displayStr.length == 6 -> 90.sp
-    displayStr.length == 7 -> 82.sp
-    displayStr.length == 8 -> 70.sp
-    else -> 48.sp
-}
+val animatedBg by animateColorAsState(
+    targetValue = targetBg,
+    animationSpec = if (isPressed) {
+        tween(durationMillis = 50, easing = LinearEasing)
+    } else {
+        tween(durationMillis = 350, easing = FastOutSlowInEasing)
+    },
+    label = "iosBtnBg"
+)
 ```
+
+### Screen-Filling Dynamic Downscaling & Gesture Navigation
+
+- **Horizontal Screen-Filling Downscaling:** The display font dynamically scales down based on character count and available horizontal width, filling the screen on large numbers while strictly preventing boundary clipping across all device pixel densities.
+- **Landscape Display Elevation:** In landscape mode, output text is aligned with an upward vertical offset to maintain comfortable visual separation from the button matrix.
+- **Swipe-to-Delete:** Swiping horizontally across the number output triggers a single backspace alongside a tactile haptic confirmation (`HapticFeedbackType.LongPress`).
 
 ---
 
 ## 🧪 50-Key Scientific Landscape Matrix
 
-When the device rotates into landscape orientation, the layout expands into a **10-column, 50-key scientific matrix**:
+When rotated into landscape orientation, the keypad expands into a **10-column, 50-key scientific matrix**:
 
 | Function Category | Supported Operations |
 | :--- | :--- |
+| **Parentheses & Logic** | $($, $)$, Two-level algebraic precedence execution |
 | **Trigonometry** | $\sin, \cos, \tan, \sin^{-1}, \cos^{-1}, \tan^{-1}$ |
 | **Hyperbolic** | $\sinh, \cosh, \tanh, \sinh^{-1}, \cosh^{-1}, \tanh^{-1}$ |
-| **Logarithms & Powers** | $e^x, 10^x, y^x, 2^x, \ln, \log_{10}, \log_y, x^2, x^3, \sqrt{x}, \sqrt[3]{x}, \sqrt[y]{x}$ |
+| **Logarithms & Powers** | $e^x, 10^x, y^x, 2^x, \ln, \log_{10}, \log_y, x^2, x^3, \sqrt{x}, \sqrt[3]{x}, \sqrt[y]{x}, \text{EE}$ |
 | **Constants & Factory Math**| $\pi, e, x!, 1/x, |x|, \text{Rand}$ |
 | **Memory Registers** | $\text{mc}, \text{m+}, \text{m-}, \text{mr}$ |
 | **Toggles** | $\text{2nd}$ function modifier key, $\text{Rad} / \text{Deg}$ mode switch |
@@ -238,36 +222,39 @@ When the device rotates into landscape orientation, the layout expands into a **
 ## 🛠️ Build & Installation Guide
 
 ### Requirements
-- **Android Studio:** Jellyfish | 2023.3.1 or newer
+- **Android Studio:** Hedgehog | 2023.1.1 or newer
 - **Kotlin:** 1.9.0+
-- **Minimum SDK:** 24 (Android 7.0)
+- **Minimum SDK:** 26 (Android 8.0 Oreo)
 - **Target SDK:** 34 (Android 14)
+- **Java/JDK:** 17
 
-### Steps
+### Local Compilation
 
-1. **Clone Repository:**
-   ```bash
-   git clone https://github.com/erfansvsh/ios-calculator-android.git
-   cd ios-calculator-android
-   ```
+```bash
+# Clone Repository
+git clone https://github.com/erfansvsh/ios-calculator-android.git
+cd ios-calculator-android
 
-2. **Open in Android Studio:**
-   Launch Android Studio and choose **Open**, selecting the cloned folder.
+# Build Debug APK
+./gradlew :app:assembleDebug
 
-3. **Build & Run:**
-   Connect a physical device or emulator and execute:
-   ```bash
-   ./gradlew installDebug
-   ```
+# Build Release APK
+./gradlew :app:assembleRelease
+```
+
+### Automated CI/CD Release Builds (GitHub Actions)
+
+Every push to `main` automatically triggers the release workflow in `.github/workflows/build-apk.yml`.
+When `RELEASE_KEYSTORE_BASE64` is configured in GitHub Repository Secrets, the CI pipeline automatically decodes the permanent keystore to produce release-signed APK artifacts ready for distribution.
 
 ---
 
 ## 📂 Project Structure
 
 ```
-com.erfansvsh.ioscalculator
- ├── MainActivity.kt               # Jetpack Compose UI layout, animations & gestures
- └── CalculatorViewModel.kt        # StateFlow state management & math engine
+com.erfansvsh.ios17calculator
+ ├── MainActivity.kt               # Jetpack Compose UI layout, SF Pro typography, animations & gestures
+ └── CalculatorViewModel.kt        # StateFlow state management, operator stacks & math engine
 ```
 
 ---
